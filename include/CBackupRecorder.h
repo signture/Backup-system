@@ -17,15 +17,16 @@ struct BackupEntry {
     bool isEncrypted;            // 是否加密
     bool isPacked;               // 是否打包
     bool isCompressed;           // 是否压缩
+    std::string description;     // 备份描述
     
     // 默认构造函数
     BackupEntry() = default;
     
     // 完整构造函数
     BackupEntry(const std::string& fn, const std::string& sfp, const std::string& dd, 
-                const std::string& bfn, const std::string& bt, bool ie, bool ip, bool ic)
+                const std::string& bfn, const std::string& bt, bool ie, bool ip, bool ic, const std::string& desc)
         : fileName(fn), sourceFullPath(sfp), destDirectory(dd), backupFileName(bfn), 
-          backupTime(bt), isEncrypted(ie), isPacked(ip), isCompressed(ic) {}
+          backupTime(bt), isEncrypted(ie), isPacked(ip), isCompressed(ic), description(desc) {}
     
     // 为了向后兼容，添加destPath别名
     std::string& destPath() { return destDirectory; }
@@ -44,7 +45,8 @@ namespace nlohmann {
                      {"backup_time", entry.backupTime},
                      {"is_encrypted", entry.isEncrypted},
                      {"is_packed", entry.isPacked},
-                     {"is_compressed", entry.isCompressed}};
+                     {"is_compressed", entry.isCompressed},
+                     {"description", entry.description}};
         }
 
         static void from_json(const nlohmann::json& j, BackupEntry& entry) {
@@ -56,6 +58,7 @@ namespace nlohmann {
             j.at("is_encrypted").get_to(entry.isEncrypted);
             j.at("is_packed").get_to(entry.isPacked);
             j.at("is_compressed").get_to(entry.isCompressed);
+            j.at("description").get_to(entry.description);
         }
     };
 }

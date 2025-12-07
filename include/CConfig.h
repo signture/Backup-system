@@ -242,6 +242,19 @@ public:
      * @return 加密类型（const 引用，避免拷贝）
      */
     const std::string& getEncryptType() const;
+
+     /**
+     * 设置备份行为描述（如 "手动备份"）
+     * @param desc 备份行为描述字符串（默认空字符串）
+     * @return 返回自身引用，支持链式调用
+     */
+    CConfig& setDescription(const std::string& desc);
+    
+    /**
+     * 获取备份行为描述
+     * @return 备份行为描述（const 引用，避免拷贝）
+     */
+    const std::string& getDescription() const;
     
     // ===== 高级配置接口（自定义选项） =====
     /**
@@ -313,6 +326,9 @@ private:
     bool m_enableEncryption = false;           // 是否启用加密
     std::string m_encryptionKey;               // 加密密钥
     std::string m_encryptType = "SimXOR";      // 加密类型（默认 SimXOR）
+
+    // 备份行为描述配置
+    std::string m_description = "";                // 备份行为描述
     
     // 高级配置
     std::map<std::string, std::string> m_customOptions; // 自定义键值对配置

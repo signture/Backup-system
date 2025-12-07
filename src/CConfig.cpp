@@ -174,6 +174,14 @@ const std::string& CConfig::getEncryptType() const {
     return m_encryptType; // 返回统一命名的成员变量
 }
 
+CConfig& CConfig::setDescription(const std::string& desc) {
+    m_description = desc; // 赋值给统一命名的成员变量
+    return *this;
+}
+
+const std::string& CConfig::getDescription() const {
+    return m_description; // 返回统一命名的成员变量
+}
 
 // ===== 高级配置接口实现 =====
 CConfig& CConfig::setCustomOption(const std::string& key, const std::string& value) {

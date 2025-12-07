@@ -2,9 +2,35 @@
 #include <fstream>
 #include <algorithm>
 #include <iostream>
-
-using namespace std;
 namespace fs = std::filesystem; 
+
+#if defined(_MSC_VER)
+#include <windows.h>
+// GBK(CP936)转UTF-8（极简版，处理用户输入的中文）
+std::string gbk_to_utf8(const std::string& gbk_str) {
+    // 第一步：GBK转宽字符
+    int wlen = MultiByteToWideChar(CP_ACP, 0, gbk_str.c_str(), -1, nullptr, 0);
+    if (wlen == 0) return gbk_str; // 转换失败返回原字符串
+    wchar_t* wbuf = new wchar_t[wlen];
+    MultiByteToWideChar(CP_ACP, 0, gbk_str.c_str(), -1, wbuf, wlen);
+    
+    // 第二步：宽字符转UTF-8
+    int ulen = WideCharToMultiByte(CP_UTF8, 0, wbuf, -1, nullptr, 0, nullptr, nullptr);
+    if (ulen == 0) { delete[] wbuf; return gbk_str; }
+    char* ubuf = new char[ulen];
+    WideCharToMultiByte(CP_UTF8, 0, wbuf, -1, ubuf, ulen, nullptr, nullptr);
+    
+    std::string utf8_str(ubuf);
+    delete[] wbuf;
+    delete[] ubuf;
+    return utf8_str;
+}
+#else
+// Linux/macOS直接返回原字符串（默认UTF-8）
+std::string gbk_to_utf8(const std::string& str) {
+    return str;
+}
+# endif
 
 CBackupRecorder::CBackupRecorder()
 {
@@ -199,17 +225,21 @@ void CBackupRecorder::addBackupRecord(const std::shared_ptr<CConfig>& config, co
     std::string destDir = config->getDestinationPath();
     // 最后备份的文件名通过destPath得到
     std::string backupFileName = fs::path(destPath).filename().string();
-    // 记录时间，精确到分钟
+    // 记录时间，精确到秒，防止统一分钟的两次备份在时间查询中出现问题
     std::time_t now = std::time(nullptr);
     std::tm* tm = std::localtime(&now);
     char timeBuffer[64];
-    std::strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %H:%M", tm);
+    std::strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %H:%M:%M", tm);
     std::string backupTime = timeBuffer;
     // 通过配置文件查看是否有加密等设置
     bool isEncrypted = config->isEncryptionEnabled();
     bool isPacked = config->isPackingEnabled();
     bool isCompressed = config->isCompressionEnabled();
-    entry = BackupEntry(fileName, sourcePath, destDir, backupFileName, backupTime, isEncrypted, isPacked, isCompressed);
+    // 查看配置中有没有相关描述
+    std::string description = config->getDescription();
+    // 测试的时候发现中文描述之后在保存的时候会有问题，这里修复一下
+    description = gbk_to_utf8(description); 
+    entry = BackupEntry(fileName, sourcePath, destDir, backupFileName, backupTime, isEncrypted, isPacked, isCompressed, description);
     // 增加备份记录
     backupRecords.push_back(entry);
 }

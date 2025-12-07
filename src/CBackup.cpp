@@ -245,7 +245,8 @@ bool CBackup::doRecovery(const BackupEntry& entry, const std::string& destDir) {
     // 非打包：按路径直接复制
     // 入口记录里 sourceFullPath 是原文件应恢复到的绝对路径
     // 这里改为恢复到 destDir 下的相对路径
-    const fs::path restorePath = fs::path(destDir) / entry.sourceFullPath.substr(entry.sourceFullPath.find_last_of('/') + 1);
+    fs::path sourcePathObj(entry.sourceFullPath);
+    const fs::path restorePath = fs::path(destDir) / sourcePathObj.filename();
     try {
         fs::create_directories(restorePath.parent_path());
     } catch (const std::exception& e) {
@@ -259,11 +260,24 @@ bool CBackup::doRecovery(const BackupEntry& entry, const std::string& destDir) {
             std::cerr << "Error: backup file not found: " << backupPath.string() << std::endl;
             return false;
         }
-        fs::copy_file(backupPath, restorePath, fs::copy_options::overwrite_existing);
+        // 直接复制就不太一样，backupPath是新增的一个目录路径，真正的路径还要再下一个文件
+        fs::path actualBackupPath = fs::path(backupPath) / entry.fileName;
+        if (fs::is_directory(actualBackupPath)) {
+            // 目录复制：使用recursive选项
+            fs::copy(actualBackupPath, restorePath, 
+                     fs::copy_options::recursive | 
+                     fs::copy_options::overwrite_existing |
+                     fs::copy_options::copy_symlinks);
+        } else if (fs::is_regular_file(actualBackupPath)) {
+            // 文件复制：使用copy_file
+            fs::copy_file(actualBackupPath, restorePath, fs::copy_options::overwrite_existing);
+        }
     } catch (const std::exception& e) {
         std::cerr << "Error restoring file: " << e.what() << std::endl;
         return false;
     }
+
+    
 
     return true;
 }
@@ -396,7 +410,17 @@ std::string CBackup::doBackup(const std::shared_ptr<CConfig>& config) {
     }
 
     // 6) 非打包路径：直接拷贝。若是目录，保持相对路径结构拷贝到 destinationRoot
-    destPath = destinationRoot;
+    // 之前这个有问题，直接备份的话会导致不同备份的覆盖，所以这里在外面创建一个时间戳文件名的目录，里面再copy
+    // 在之前的基础上，再创建一个时间戳目录
+    std::string timestamp = std::to_string(std::time(nullptr));
+    std::string newDir = destinationRoot + "\\" + timestamp;
+    try{
+        fs::create_directories(newDir);
+    }catch(const std::exception& e){
+        std::cerr << "Error: Failed to create timestamp directory: " << e.what() << std::endl;
+        return "";
+    }
+    destPath = newDir;
     for(const auto& root : sourceRoots){
         const fs::path rootPath = fs::path(root).parent_path();
         if (fs::exists(root)) {
@@ -407,8 +431,8 @@ std::string CBackup::doBackup(const std::shared_ptr<CConfig>& config) {
                     const std::string relativePath = fs::relative(entry, rootPath).string();
                     // 为空，说明相对路径就是当前目录，直接以entry作为相对路径
                     const std::string destinationPath = (relativePath.empty() ? 
-                                                        (fs::path(destinationRoot) / entry).string() : 
-                                                        (fs::path(destinationRoot) / relativePath).string());
+                                                        (fs::path(newDir) / entry).string() : 
+                                                        (fs::path(newDir) / relativePath).string());
                     
                     std::cout << "Copying " << entry << " to " << destinationPath << std::endl;
                     std::cout << "Root:" << rootPath << std::endl;

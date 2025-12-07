@@ -38,6 +38,11 @@ std::string PackFactory::getPackType(const std::string& filePath) {
 }
 
 bool PackFactory::isPackedFile(const std::string& filePath) {
+    // 添加目录检查
+    if(std::filesystem::is_directory(filePath)){
+        return false;
+    }
+// 然后再尝试打开文件
     if(!std::filesystem::exists(filePath)){
         std::cerr << "Error: File " << filePath << " does not exist.\n";
         return false;

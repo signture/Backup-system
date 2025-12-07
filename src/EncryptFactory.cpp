@@ -70,6 +70,11 @@ std::string EncryptFactory::getEncryptType(const std::string& filePath){
 // 检查文件是否为加密文件
 bool EncryptFactory::isFileEncrypted(const std::string& filePath){
     // 应该是第一个位既是标志位，第二个字节也是符合条件的压缩类型
+    // 添加目录检查
+    if(std::filesystem::is_directory(filePath)){
+        return false;
+    }
+// 然后再尝试打开文件
     if(!std::filesystem::exists(filePath)){
         std::cerr << "Error: File " << filePath << " does not exist.\n";
         return false;

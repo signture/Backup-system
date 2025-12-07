@@ -12,6 +12,34 @@
 
 namespace fs = std::filesystem;
 
+#if defined(_MSC_VER)
+#include <windows.h>
+// UTF-8 转 GBK(CP936)（用于 Windows 显示）
+std::string utf8_to_gbk(const std::string& utf8_str) {
+    // 第一步：UTF-8 转宽字符
+    int wlen = MultiByteToWideChar(CP_UTF8, 0, utf8_str.c_str(), -1, nullptr, 0);
+    if (wlen == 0) return utf8_str; // 转换失败返回原字符串
+    wchar_t* wbuf = new wchar_t[wlen];
+    MultiByteToWideChar(CP_UTF8, 0, utf8_str.c_str(), -1, wbuf, wlen);
+    
+    // 第二步：宽字符转 GBK
+    int glen = WideCharToMultiByte(CP_ACP, 0, wbuf, -1, nullptr, 0, nullptr, nullptr);
+    if (glen == 0) { delete[] wbuf; return utf8_str; }
+    char* gbuf = new char[glen];
+    WideCharToMultiByte(CP_ACP, 0, wbuf, -1, gbuf, glen, nullptr, nullptr);
+    
+    std::string gbk_str(gbuf);
+    delete[] wbuf;
+    delete[] gbuf;
+    return gbk_str;
+}
+#else
+// Linux/macOS 直接返回原字符串（默认 UTF-8 显示）
+std::string utf8_to_gbk(const std::string& str) {
+    return str;
+}
+# endif
+
 // 全局备份仓库路径配置
 static std::string BACKUP_REPOSITORY_ROOT = ".\\backup_repository";
 
@@ -20,7 +48,7 @@ static std::string BACKUP_REPOSITORY_ROOT = ".\\backup_repository";
 
 static void printHelp(){
     std::cout << "Usage (pseudo CLI):\n"
-              << "--mode backup  --src <path> --dst <relative_path> [--include \".*\\.txt\"  --pack <packType>(default: none)\n  --compress <compressType>(default: none)  --encrypt <encryptType>(default: none)  --key <encryptKey>]\n"
+              << "--mode backup  --src <path> --dst <relative_path> [--include \".*\\.txt\"  --pack <packType>(default: none)\n  --compress <compressType>(default: none)  --encrypt <encryptType>(default: none)  --key <encryptKey>  --desc <description>]\n"
               << "--mode recover --dst <relative_path> --to <target_path>\n";
 }
 
@@ -53,6 +81,7 @@ static int runParsed(const std::vector<std::string>& args){
     std::string includeRegex;
     std::string restoreTo;
     std::string repoPath;
+    std::string description = "";  // 新增一个参数用于指定备份行为描述,默认空字符串
 
     auto nextVal = [&](size_t& i, std::string& out){ if (i + 1 < args.size()) { out = args[++i]; return true; } return false; };
     for (size_t i = 0; i < args.size(); ++i) {
@@ -68,6 +97,7 @@ static int runParsed(const std::vector<std::string>& args){
         else if (arg == "--to") { nextVal(i, restoreTo); }
         else if (arg == "--repo") { nextVal(i, repoPath); }
         else if (arg == "--help" || arg == "-h") { printHelp(); return 0; }
+        else if (arg == "--desc") { nextVal(i, description); }  // 新增参数处理
     }
     
     // 设置备份仓库路径
@@ -98,7 +128,8 @@ static int runParsed(const std::vector<std::string>& args){
         auto config = std::make_shared<CConfig>();
         config->setSourcePath(fs::absolute(fs::path(srcPath)).string())
               .setDestinationPath(fs::absolute(fs::path(actualBackupPath)).string())
-              .setRecursiveSearch(true);
+              .setRecursiveSearch(true)
+              .setDescription(description);  // 设置备份行为描述
 
         // 判断是否需要打包
         if(packType != "none"){
@@ -183,7 +214,8 @@ static int runParsed(const std::vector<std::string>& args){
             std::cout << "Multiple back up records found for " << dstPath << ":\n";
             for(size_t i = 0; i < records.size(); ++i){
                 // 现在先主要显示原先的备份路径和备份时间，还要展示是否有打包、压缩、加密等操作
-                std::cout << "[" << i << "] " << records[i].fileName << " @ " << records[i].backupTime << " (Pack: " << records[i].isPacked << ", Compress: " << records[i].isCompressed << ", Encrypt: " << records[i].isEncrypted << ")" << std::endl;
+                // 新增备份行为描述字段
+                std::cout << "[" << i << "] " << records[i].fileName << " @ " << records[i].backupTime << " (Pack: " << records[i].isPacked << ", Compress: " << records[i].isCompressed << ", Encrypt: " << records[i].isEncrypted << ", Desc: " << utf8_to_gbk(records[i].description) << ")" << std::endl;
             }
             // 让用户选择
             int choice;
