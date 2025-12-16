@@ -8,6 +8,7 @@
 #include <set>  
 #include <fstream>
 #include <iostream>
+#include "Utils.h"
 
 #include "CConfig.h"
 #include "CBackupRecorder.h"
@@ -37,12 +38,6 @@ private:
 
 };
 
-// 辅助函数
-bool ReadFile(const std::string& filePath, std::vector<char>& buffer);
-bool WriteFile(const std::string& filePath, std::vector<char>& buffer);
-// 避免与 Windows API 宏 CopyFile 冲突
-bool CopyFileBinary(const std::string& srcPath, const std::string& destPath);
-// 新增：收集需要备份的文件列表
 std::vector<std::string> collectFilesToBackup(const std::string& rootPath, const std::shared_ptr<CConfig>& config);
 
 

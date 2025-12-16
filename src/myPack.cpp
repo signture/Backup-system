@@ -1,22 +1,29 @@
 ﻿# include "myPack.h"
 
 // 定义辅助函数，用于确认文件类型
-FileType getFileType(const std::string& path){
-    if(std::filesystem::is_directory(path)){
-        return FileType::Directory;
-    }
-    else if(std::filesystem::is_regular_file(path)){
-        return FileType::Regular;
-    }
-    else{
-        // 报错，说明该类型不支持，但是处理就按照普通文件处理
-        std::cerr << "Warning: File type of " << path << " is not supported, but processed as Regular file.\n";
+FileType getFileType(const std::filesystem::path& path){
+    try {
+        if(std::filesystem::is_directory(path)){
+            return FileType::Directory;
+        }
+        else if(std::filesystem::is_regular_file(path)){
+            return FileType::Regular;
+        }
+        else{
+            std::cerr << "Warning: File type of " << path.string() << " is not supported, but processed as Regular file.\n";
+            return FileType::Regular;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Warning: Error checking file type of " << path.string() << ": " << e.what() << ", processed as Regular file.\n";
         return FileType::Regular;
     }
 }
 
 
 std::string myPack::pack(const std::vector<std::string>& files, const std::string& destPath) {
+    // 首先检查是不是空的文件列表
+    if(files.empty())   return "";
+
     std::vector<FileMeta> metas;
     // 包头长度 = 是否打包（1字节） + 算法类型(1字节) + 文件数量(4字节) + 内容区起始位置(4字节)
     size_t headerLen = 1 + 1 + 4 + 4;
@@ -68,7 +75,21 @@ std::string myPack::pack(const std::vector<std::string>& files, const std::strin
 
 
     const std::string baseName = "backup_" + std::to_string(time(nullptr)) + "." + getPackTypeName();
-    const std::string destPackBase = (std::filesystem::path(destPath) / baseName).string();
+    std::filesystem::path destPackPath = std::filesystem::path(destPath) / baseName;
+
+    // 确保目标目录存在
+    try {
+        std::filesystem::path destDirPath = destPackPath.parent_path();
+        if (!std::filesystem::exists(destDirPath)) {
+            std::filesystem::create_directories(destDirPath);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error: Failed to create destination directory " << destPath << ": " << e.what() << "\n";
+        return "";
+    }
+
+    const std::string destPackBase = destPackPath.string();
+
 
     // 接下来写入包头（包括打包算法，当前包包含的文件数量，文件的元信息）
     std::ofstream out(destPackBase, std::ios::binary);
@@ -106,6 +127,24 @@ std::string myPack::pack(const std::vector<std::string>& files, const std::strin
         if(meta.type != FileType::Regular) continue;
 
         std::filesystem::path fullFilePath = std::filesystem::path(rootPath) / meta.name;
+        // 防止路径过长
+        // 但是有可能文件路径过长，超过了系统限制
+        #ifdef _WIN32
+            std::string fullPath = fullFilePath.string();
+            if(fullPath.size() > PATH_MAX){
+                // 为本地路径添加 \\?\ 前缀
+                if (fullPath.find("\\\\") != 0) {
+                    fullPath = "\\\\?\\" + fullPath;
+                }
+                // 为UNC路径添加 \\?\UNC\ 前缀
+                else {
+                    fullPath = "\\\\?\\UNC\\" + fullPath.substr(2);
+                }
+                // 使用带有长路径前缀的路径重新创建filesystem::path对象
+                fullFilePath = std::filesystem::path(fullPath);
+            }
+        #endif
+
         std::ifstream in(fullFilePath, std::ios::binary);
         if(!in){
             std::cerr << "Error: Failed to open file " << fullFilePath.string() << " for reading.\n";
@@ -176,6 +215,23 @@ bool myPack::unpack(const std::string& srcPath, const std::string& destDir) {
                 in.seekg(meta.offset + contentStart, std::ios::beg);
                 // 写入
                 std::filesystem::path outPath = std::filesystem::path(destDir) / meta.name;
+                // 但是有可能文件路径过长，超过了系统限制
+                // 参考：https://learn.microsoft.com/zh-cn/windows/win32/fileio/maximum-file-path-limitation?tabs=registry
+                #ifdef _WIN32
+                    std::string fullPath = outPath.string();
+                    if(fullPath.size() > PATH_MAX){
+                        // 为本地路径添加 \\?\ 前缀
+                        if (fullPath.find("\\\\") != 0) {
+                            fullPath = "\\\\?\\" + fullPath;
+                        }
+                        // 为UNC路径添加 \\?\UNC\ 前缀
+                        else {
+                            fullPath = "\\\\?\\UNC\\" + fullPath.substr(2);
+                        }
+                        // 使用带有长路径前缀的路径重新创建filesystem::path对象
+                        outPath = std::filesystem::path(fullPath);
+                    }
+                #endif
 
                 // 确保目标目录存在
                 if(!std::filesystem::exists(outPath.parent_path())){

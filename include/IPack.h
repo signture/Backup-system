@@ -2,6 +2,8 @@
 #ifndef IPACK_H
 #define IPACK_H
 
+#define PATH_MAX 260
+
 #include <string>
 #include <vector>
 

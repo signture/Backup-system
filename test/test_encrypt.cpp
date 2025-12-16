@@ -44,3 +44,75 @@ TEST(EncryptionTest, BasicEncryptionDecryption) {
     CleanupTestFile(encryptedPath);
     CleanupTestFile(decryptedFile);
 }
+
+// 新增：空密钥测试
+TEST(EncryptionTest, EmptyKeyEncryptionDecryption) {
+    const std::string sourceFile = "test_empty_key.txt";
+    const std::string encryptedFile = "test_empty_key_encrypted.txt";
+    const std::string decryptedFile = "test_empty_key_decrypted.txt";
+    const std::string testContent = "Test empty key encryption!";
+    const std::string emptyKey = "";  // 空密钥
+
+    // 清理旧文件
+    CleanupTestFile(sourceFile);
+    CleanupTestFile(encryptedFile);
+    CleanupTestFile(decryptedFile);
+
+    // 创建测试文件
+    ASSERT_TRUE(CreateTestFile(sourceFile, testContent)) << "Failed to create test file for empty key";
+
+    // 空密钥加密/解密
+    SimpleXOREncrypt encryptor;
+    std::string encryptedPath = encryptor.encryptFile(sourceFile, emptyKey);
+    ASSERT_TRUE(std::filesystem::exists(encryptedPath)) << "Empty key encryption failed (file not created)";
+
+    bool decryptResult = encryptor.decryptFile(encryptedPath, decryptedFile, emptyKey);
+    ASSERT_TRUE(decryptResult) << "Empty key decryption failed";
+
+    // 验证内容一致性（空密钥应兼容处理，如使用默认密钥或直接返回原文）
+    std::vector<char> decryptedContent;
+    ASSERT_TRUE(ReadTestFile(decryptedFile, decryptedContent)) << "Failed to read decrypted file with empty key";
+    ASSERT_EQ(std::string(decryptedContent.begin(), decryptedContent.end()), testContent) 
+        << "Empty key decrypted content mismatch";
+
+    // 清理
+    CleanupTestFile(sourceFile);
+    CleanupTestFile(encryptedPath);
+    CleanupTestFile(decryptedFile);
+}
+
+// 新增：超长密钥（1024位）测试
+TEST(EncryptionTest, LongKeyEncryptionDecryption) {
+    const std::string sourceFile = "test_long_key.txt";
+    const std::string encryptedFile = "test_long_key_encrypted.txt";
+    const std::string decryptedFile = "test_long_key_decrypted.txt";
+    const std::string testContent = "Test 1024-bit long key encryption!";
+    const std::string longKey(1024, 'K');  // 1024位超长密钥
+
+    // 清理旧文件
+    CleanupTestFile(sourceFile);
+    CleanupTestFile(encryptedFile);
+    CleanupTestFile(decryptedFile);
+
+    // 创建测试文件
+    ASSERT_TRUE(CreateTestFile(sourceFile, testContent)) << "Failed to create test file for long key";
+
+    // 超长密钥加密/解密
+    SimpleXOREncrypt encryptor;
+    std::string encryptedPath = encryptor.encryptFile(sourceFile, longKey);
+    ASSERT_TRUE(std::filesystem::exists(encryptedPath)) << "Long key encryption failed (file not created)";
+
+    bool decryptResult = encryptor.decryptFile(encryptedPath, decryptedFile, longKey);
+    ASSERT_TRUE(decryptResult) << "Long key decryption failed";
+
+    // 验证内容一致性
+    std::vector<char> decryptedContent;
+    ASSERT_TRUE(ReadTestFile(decryptedFile, decryptedContent)) << "Failed to read decrypted file with long key";
+    ASSERT_EQ(std::string(decryptedContent.begin(), decryptedContent.end()), testContent) 
+        << "Long key decrypted content mismatch";
+
+    // 清理
+    CleanupTestFile(sourceFile);
+    CleanupTestFile(encryptedPath);
+    CleanupTestFile(decryptedFile);
+}

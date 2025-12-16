@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#define DEFAULT_KEY "default_key"
+
 // 加密器类型枚举
 enum class EncryptType : uint8_t{
     None = 0,

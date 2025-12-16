@@ -2,6 +2,7 @@
 
 #include "myPack.h"
 #include "testUtils.h"
+#include "CBackup.h"
 
 #include <filesystem>
 #include <fstream>
@@ -120,8 +121,8 @@ TEST(myPackTest, PackEmptyFileList) {
     myPack packer;
     std::string packedFilePath = packer.pack(emptyFiles, destDir);
     
-    // 空文件列表也是一种文件，应该成功打包
-    EXPECT_FALSE(packedFilePath.empty()) << "Packing empty file list should succeed";
+    // 空文件列表打包操作应该失败
+    EXPECT_TRUE(packedFilePath.empty()) << "Packing empty file list should fail";
     
     // 清理测试文件
     try {
@@ -149,4 +150,55 @@ TEST(myPackTest, UnpackNonExistentFile) {
     } catch (...) {
         // 清理失败时忽略错误
     }
+}
+
+
+// 新增：超长路径打包/解包测试（Linux下构造200+字符路径）
+TEST(myPackTest, LongPathPackUnpack) {
+    // 构造超长路径：多层嵌套目录 + 长文件名（总长度≈250字符）
+    const std::string baseDir = "test_long_path_dir";
+    const std::string longSubDir = baseDir + "/a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q/r/s/t/u/v/w/x/y/z";
+    const std::string longFileName = "very_long_file_name_1234567890_abcdefghijklmnopqrstuvwxyz_1234567890.txt";
+    const std::string file1 = longSubDir + "/" + longFileName;
+    const std::string packDestDir = "test_long_path_pack_dest";
+    const std::string unpackDestDir = "test_long_path_unpack_dest";
+    const std::string testContent = "Long path file content";
+
+    // 清理旧文件
+    CleanupTestDir(baseDir);      // 使用CleanupTestDir而非CleanupTestFile
+    CleanupTestDir(packDestDir); 
+    CleanupTestDir(unpackDestDir);
+
+    // 创建超长路径和文件
+    std::filesystem::create_directories(longSubDir);
+    ASSERT_TRUE(CreateTestFile(file1, testContent)) << "Failed to create long path file";
+    ASSERT_TRUE(std::filesystem::exists(file1)) << "Long path file not created";
+
+    // 打包：使用先根遍历收集文件列表
+    auto config = std::make_shared<CConfig>(baseDir, packDestDir);
+    config->setRecursiveSearch(true);
+    std::vector<std::string> files = collectFilesToBackup(baseDir, config);
+    
+    myPack packer;
+    std::string packedFilePath = packer.pack(files, packDestDir);
+    ASSERT_FALSE(packedFilePath.empty()) << "Long path pack failed";
+
+    // 解包
+    std::filesystem::create_directories(unpackDestDir);
+    bool unpackResult = packer.unpack(packedFilePath, unpackDestDir);
+    ASSERT_TRUE(unpackResult) << "Long path unpack failed";
+
+    // 验证解包结果（路径结构保持一致）
+    std::string unpackedFile = unpackDestDir + "/" + longSubDir + "/" + longFileName;
+    ASSERT_TRUE(std::filesystem::exists(unpackedFile)) << "Unpacked long path file not found: " << unpackedFile;
+
+    std::vector<char> content;
+    ASSERT_TRUE(ReadTestFile(unpackedFile, content)) << "Failed to read unpacked long path file";
+    ASSERT_EQ(std::string(content.begin(), content.end()), testContent) << "Long path file content mismatch";
+
+    // 清理
+    std::filesystem::remove_all(baseDir);
+    std::filesystem::remove_all(packDestDir);
+    std::filesystem::remove_all(packedFilePath);
+    std::filesystem::remove_all(unpackDestDir);
 }

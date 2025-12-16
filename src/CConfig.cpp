@@ -273,6 +273,12 @@ bool CConfig::isValid() const {
         std::cerr << "Error: Encryption enabled but encryption key is empty" << std::endl;
         return false;
     }
+
+    // 7. 增加：目标路径是否可写
+    if (!isPathWritable(m_destinationPath)) {
+        std::cerr << "Error: Destination path is not writable: " << m_destinationPath << std::endl;
+        return false;
+    }
     
     // 所有检查通过，配置有效
     return true;

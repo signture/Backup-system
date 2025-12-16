@@ -49,7 +49,7 @@ static std::string BACKUP_REPOSITORY_ROOT = ".\\backup_repository";
 static void printHelp(){
     std::cout << "Usage (pseudo CLI):\n"
               << "--mode backup  --src <path> --dst <relative_path> [--include \".*\\.txt\"  --pack <packType>(default: none)\n  --compress <compressType>(default: none)  --encrypt <encryptType>(default: none)  --key <encryptKey>  --desc <description>]\n"
-              << "--mode recover --dst <relative_path> --to <target_path>\n";
+              << "--mode recover --fn <filename> --to <target_path>\n";
 }
 
 
@@ -100,7 +100,7 @@ static int runParsed(const std::vector<std::string>& args){
         else if (arg == "--desc") { nextVal(i, description); }  // 新增参数处理
     }
     
-    // 设置备份仓库路径
+    // 设置备份仓库路径  -- 这里目前的唯一功能是用于设置备份记录的路径
     if (!repoPath.empty()) {
         BACKUP_REPOSITORY_ROOT = repoPath;
         std::cout << "Backup repository set to: " << BACKUP_REPOSITORY_ROOT << std::endl;
@@ -113,16 +113,20 @@ static int runParsed(const std::vector<std::string>& args){
     if (mode == "backup") {
         if (srcPath.empty() || dstPath.empty()) { printHelp(); return 1; }
         
-        // 计算实际备份路径：仓库路径 + 相对路径 
-        std::string actualBackupPath = BACKUP_REPOSITORY_ROOT;
-        if (!dstPath.empty()) {
-            fs::path dst = fs::path(dstPath);
-            actualBackupPath = fs::absolute(fs::path(BACKUP_REPOSITORY_ROOT) / dst).string();
-        }
+        // // 计算实际备份路径：仓库路径 + 相对路径 
+        // std::string actualBackupPath = BACKUP_REPOSITORY_ROOT;
+        // if (!dstPath.empty()) {
+        //     fs::path dst = fs::path(dstPath);
+        //     actualBackupPath = fs::absolute(fs::path(BACKUP_REPOSITORY_ROOT) / dst).string();
+        // }
+
+        // 修改一下设计，直接使用用户输入的目标路径
+        std::string actualBackupPath = fs::absolute(fs::path(dstPath)).string();
 
         std::cout << "Source: " << srcPath << std::endl;
-        std::cout << "Relative path: " << dstPath << std::endl;
-        std::cout << "Actual backup path: " << actualBackupPath << std::endl;
+        // std::cout << "Relative path: " << dstPath << std::endl;
+        // std::cout << "Actual backup path: " << actualBackupPath << std::endl;
+        std::cout << "Destination: " << actualBackupPath << std::endl;
         
         // 将这里的路径设置为绝对路径
         auto config = std::make_shared<CConfig>();

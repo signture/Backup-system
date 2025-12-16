@@ -8,6 +8,18 @@
 
 namespace fs = std::filesystem;
 
+// 辅助函数：创建测试目录
+inline bool CreateTestDir(const std::string& dirPath) {
+    try {
+        if (!fs::exists(dirPath)) {
+            fs::create_directories(dirPath);
+        }
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
 // 辅助函数：创建测试文件
 inline bool CreateTestFile(const std::string& filePath, const std::string& content) {
     try {
@@ -55,6 +67,38 @@ inline void CleanupTestFile(const std::string& filePath) {
         }
     } catch (...) {
         // 忽略清理过程中的错误
+    }
+}
+
+// 辅助函数：清理测试目录
+inline void CleanupTestDir(const std::string& dirPath) {
+    try {
+        if (fs::exists(dirPath)) {
+            fs::remove_all(dirPath);
+        }
+    } catch (...) {
+        // 忽略清理过程中的错误
+    }
+}
+
+// 辅助函数：比较两个目录结构是否一致
+inline bool CompareDirs(const std::string& dir1, const std::string& dir2) {
+    try {
+        // 递归遍历目录1
+        for (const auto& entry : fs::recursive_directory_iterator(dir1)) {
+            // 构建对应路径
+            std::string relativePath = fs::relative(entry.path(), dir1).string();
+            std::string correspondingPath = (fs::path(dir2) / relativePath).string();
+            
+            // 检查对应路径是否存在
+            if (!fs::exists(correspondingPath)) return false;
+            
+            // 检查是否为目录
+            if (entry.is_directory() != fs::is_directory(correspondingPath)) return false;
+        }
+        return true;
+    } catch (...) {
+        return false;
     }
 }
 

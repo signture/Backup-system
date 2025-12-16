@@ -33,10 +33,19 @@ std::string SimpleXOREncrypt::encryptFile(const std::string& sourcePath, const s
     outFile.write(reinterpret_cast<const char*>(&head), sizeof(EncHead));
 
     // 执行简单加密
+    std::string password = key;
     std::vector<char> buffer(BUFFER_SIZE);
     size_t keyIndex = 0;
     size_t bytesRead;
+    // 添加空密钥处理
     size_t keySize = key.size();
+    // 空密钥处理：使用默认密钥
+    if (keySize == 0) {
+        // 使用默认密钥
+        password = DEFAULT_KEY;
+        keySize = password.size();
+    }
+    
     uint32_t crc32 = CRC32::getInitialValue();
 
     while((bytesRead = inFile.read(buffer.data(), BUFFER_SIZE).gcount())){
@@ -45,7 +54,7 @@ std::string SimpleXOREncrypt::encryptFile(const std::string& sourcePath, const s
             crc32 = CRC32::update(crc32, static_cast<uint8_t>(buffer[i]));
 
             // 加密内容
-            buffer[i] ^= key[keyIndex];
+            buffer[i] ^= password[keyIndex];
             keyIndex = (keyIndex + 1) % keySize;
         }
         outFile.write(buffer.data(), bytesRead);
@@ -104,17 +113,25 @@ bool SimpleXOREncrypt::decryptFile(const std::string& sourcePath, const std::str
 
     // 执行XOR解密
     std::vector<char> buffer(BUFFER_SIZE);
+    std::string password = key;
     size_t keySize = key.size();
     size_t keyIndex = 0;
     size_t bytesRead;
     uint32_t crc32 = CRC32::getInitialValue(); 
+
+    // 添加空密钥处理
+    if (keySize == 0) {
+        // 使用默认密钥
+        password = DEFAULT_KEY;
+        keySize = password.size();
+    }
 
     while((bytesRead = inFile.read(buffer.data(), BUFFER_SIZE).gcount()) > 0) {
         // 对数据进行CRC计算
         for(size_t i = 0; i < bytesRead; ++i) {  
             // 先解密，再计算crc32
             // 解密数据
-            buffer[i] ^= key[keyIndex];
+            buffer[i] ^= password[keyIndex];
             keyIndex = (keyIndex + 1) % keySize;
             // 计算crc
             crc32 = CRC32::update(crc32, static_cast<uint8_t>(buffer[i]));

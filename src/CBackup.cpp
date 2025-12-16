@@ -15,72 +15,6 @@ CBackup::~CBackup(){
 }
 
 
-// 构建一个读写的辅助函数
-bool ReadFile(const std::string& filePath, std::vector<char>& buffer){
-    // 以二进制进行文件读写
-    std::ifstream inFile(filePath, std::ios::binary); 
-    // 检查文件是否打开成功
-    if(!inFile.is_open()){
-        std::cerr << "Failed to open file: " << filePath << std::endl;
-        return false;
-    }
-    // 获取文件大小
-    inFile.seekg(0, std::ifstream::end);   // 移动到文件末尾
-    std::streampos fileSize = inFile.tellg();   // 获取文件大小（当前指针的位置）
-    inFile.seekg(0);               // 移动回文件开头
-    // 读取文件内容
-    buffer.resize(fileSize);
-    if(!inFile.read(buffer.data(), fileSize)){  //  后续可以设置分块读取以防止文件过大导致内存不足
-        std::cerr << "Failed to read file: " << filePath << std::endl;
-        return false;
-    }
-    return true;
-}
-
-bool WriteFile(const std::string& filePath, std::vector<char>& buffer){
-    // 以二进制进行写操作
-    std::ofstream outFile(filePath, std::ofstream::binary);
-    if(!outFile.is_open()){
-        std::cerr << "Failed to open file: " << filePath << std::endl;
-        return false;
-    }
-    outFile.write(buffer.data(), buffer.size());
-    if(!outFile){
-        std::cerr << "Failed to write file: " << filePath << std::endl;
-        return false;
-    }
-    outFile.close();
-    return true;
-}
-
-
-bool CopyFileBinary(const std::string& srcPath, const std::string& destPath){
-    // 以二进制进行文件读写
-    std::ifstream inFile(srcPath, std::ios::binary); 
-    // 检查文件是否打开成功
-    if(!inFile.is_open()){
-        std::cerr << "Failed to open file: " << srcPath << std::endl;
-        return false;
-    }
-    // 获取文件大小
-    inFile.seekg(0, std::ifstream::end);   // 移动到文件末尾
-    std::streampos fileSize = inFile.tellg();   // 获取文件大小（当前指针的位置）
-    inFile.seekg(0);               // 移动回文件开头
-    // 读取文件内容
-    std::vector<char> buffer(fileSize);
-    if(!inFile.read(buffer.data(), fileSize)){  //  后续可以设置分块读取以防止文件过大导致内存不足
-        std::cerr << "Failed to read file: " << srcPath << std::endl;
-        return false;
-    }
-    inFile.close();
-    // 写入文件内容
-    if(!WriteFile(destPath, buffer)){
-        std::cerr << "Failed to write file: " << destPath << std::endl;
-        return false;
-    }
-    return true;
-}
-
 // 收集需要备份的文件列表
 std::vector<std::string> collectFilesToBackup(const std::string& rootPath, const std::shared_ptr<CConfig>& config) {
     std::vector<std::string> filesList;
@@ -124,11 +58,22 @@ std::vector<std::string> collectFilesToBackup(const std::string& rootPath, const
     return filesList;
 }
 
-
 bool CBackup::doRecovery(const BackupEntry& entry, const std::string& destDir) {
     // 基础恢复：
     // - 若是打包：调用解包器（此处保留输出提示，具体实现按打包器完成）
     // - 若非打包：从备份目录将文件按原始相对路径复制回去
+
+    // 首先检查目标路径是否存在
+    if(!fs::exists(destDir)){
+        std::cerr << "Error: Destination path does not exist: " << destDir << std::endl;
+        return false;
+    }
+
+    // 检查目标路径是否合法
+    if(!isPathWritable(destDir)){
+        std::cerr << "Error: Destination path is not writable: " << destDir << std::endl;
+        return false;
+    }
 
     const std::string backupRoot = entry.destDirectory; // 记录中的目标目录（备份落地位置）
     std::string backupName = entry.backupFileName; // 记录中的备份文件名或相对路径
@@ -327,7 +272,7 @@ std::string CBackup::doBackup(const std::shared_ptr<CConfig>& config) {
     }
 
     // 5) 是否打包（基础版：若未启用打包，则直接镜像拷贝；启用打包则调用打包器）
-    if (config->isPackingEnabled()) {
+    if (config->isPackingEnabled()) { 
         std::cout << "Packing files: " << filesToBackup.size() << std::endl;
         std::unique_ptr<IPack> packer = nullptr;
         try {
@@ -410,17 +355,38 @@ std::string CBackup::doBackup(const std::shared_ptr<CConfig>& config) {
     }
 
     // 6) 非打包路径：直接拷贝。若是目录，保持相对路径结构拷贝到 destinationRoot
-    // 之前这个有问题，直接备份的话会导致不同备份的覆盖，所以这里在外面创建一个时间戳文件名的目录，里面再copy
-    // 在之前的基础上，再创建一个时间戳目录
-    std::string timestamp = std::to_string(std::time(nullptr));
-    std::string newDir = destinationRoot + "\\" + timestamp;
+    // // 之前这个有问题，直接备份的话会导致不同备份的覆盖，所以这里在外面创建一个时间戳文件名的目录，里面再copy
+    // // 在之前的基础上，再创建一个时间戳目录
+    // std::string timestamp = std::to_string(std::time(nullptr));
+    // std::string newDir = destinationRoot + "\\" + timestamp;
+    // 更新的设计感觉还是有问题，主要问题在于常规思路如果有重名的话最好的方式应该是告知用户，由用户来处理冲突
+    if (fs::exists(destinationRoot)) {
+        // 目标目录已存在，询问用户是否覆盖
+        char choice;
+        std::cout << "Destination directory '" << destinationRoot << "' already exists.\n";
+        std::cout << "Do you want to overwrite it? (y/n): ";
+        std::cin >> choice;
+    
+        if (choice != 'y' && choice != 'Y') {
+            std::cout << "Backup cancelled.\n";
+            return "";
+        }
+    
+        // 选择覆盖，先删除原有目录
+        try {
+            fs::remove_all(destinationRoot);
+        } catch (const std::exception& e) {
+            std::cerr << "Error: Failed to remove existing directory: " << e.what() << std::endl;
+            return "";
+        }
+    }
     try{
-        fs::create_directories(newDir);
+        fs::create_directories(destinationRoot);
     }catch(const std::exception& e){
         std::cerr << "Error: Failed to create timestamp directory: " << e.what() << std::endl;
         return "";
     }
-    destPath = newDir;
+    destPath = destinationRoot;
     for(const auto& root : sourceRoots){
         const fs::path rootPath = fs::path(root).parent_path();
         if (fs::exists(root)) {
@@ -431,8 +397,8 @@ std::string CBackup::doBackup(const std::shared_ptr<CConfig>& config) {
                     const std::string relativePath = fs::relative(entry, rootPath).string();
                     // 为空，说明相对路径就是当前目录，直接以entry作为相对路径
                     const std::string destinationPath = (relativePath.empty() ? 
-                                                        (fs::path(newDir) / entry).string() : 
-                                                        (fs::path(newDir) / relativePath).string());
+                                                        (fs::path(destinationRoot) / entry).string() : 
+                                                        (fs::path(destinationRoot) / relativePath).string());
                     
                     std::cout << "Copying " << entry << " to " << destinationPath << std::endl;
                     std::cout << "Root:" << rootPath << std::endl;

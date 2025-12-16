@@ -111,3 +111,51 @@ TEST(CompressionTest, CRC32Check) {
     CleanupTestFile(sourceFile);
     CleanupTestFile(compressedFile);
 }
+
+// 新增：超大文件（100MB）压缩/解压测试
+TEST(CompressionTest, LargeFileCompressionDecompression) {
+    const std::string sourceFile = "test_large.txt";
+    const std::string decompressedFile = "test_large_decompressed.txt";
+    const size_t largeFileSize = 100 * 1024 * 1024;  // 100MB
+    const std::string dataBlock(1024 * 1024, 'A');  // 1MB数据块
+
+    // 清理旧文件
+    CleanupTestFile(sourceFile);
+    CleanupTestFile(decompressedFile);
+
+    // 生成100MB超大文件（循环写入数据块，避免内存溢出）
+    std::ofstream largeFile(sourceFile, std::ios::binary);
+    ASSERT_TRUE(largeFile.is_open()) << "Failed to create large test file";
+    for (size_t i = 0; i < 100; ++i) {
+        largeFile.write(dataBlock.data(), dataBlock.size());
+    }
+    largeFile.close();
+    ASSERT_TRUE(std::filesystem::file_size(sourceFile) == largeFileSize) << "Large file size mismatch";
+
+    // 执行压缩和解压
+    HuffmanCompress huffmanCompressor;
+    std::string compressedFile = huffmanCompressor.compressFile(sourceFile);
+    ASSERT_FALSE(compressedFile.empty()) << "Large file compression failed";
+    ASSERT_TRUE(std::filesystem::exists(compressedFile)) << "Compressed large file not found";
+
+    bool decompressResult = huffmanCompressor.decompressFile(compressedFile, decompressedFile);
+    ASSERT_TRUE(decompressResult) << "Large file decompression failed";
+    ASSERT_TRUE(std::filesystem::file_size(decompressedFile) == largeFileSize) << "Decompressed large file size mismatch";
+
+    // 验证内容一致性（抽样验证，避免全量读取占用内存）
+    std::ifstream srcStream(sourceFile, std::ios::binary);
+    std::ifstream decStream(decompressedFile, std::ios::binary);
+    ASSERT_TRUE(srcStream.is_open() && decStream.is_open()) << "Failed to open large files for content check";
+    
+    char srcBuf[1024], decBuf[1024];
+    for (size_t i = 0; i < 100; ++i) {  // 抽样100个数据块
+        srcStream.read(srcBuf, sizeof(srcBuf));
+        decStream.read(decBuf, sizeof(decBuf));
+        ASSERT_EQ(memcmp(srcBuf, decBuf, sizeof(srcBuf)), 0) << "Large file content mismatch at block " << i;
+    }
+
+    // 清理测试文件
+    CleanupTestFile(sourceFile);
+    CleanupTestFile(compressedFile);
+    CleanupTestFile(decompressedFile);
+}

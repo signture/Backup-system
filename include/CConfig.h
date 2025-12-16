@@ -11,6 +11,8 @@
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
+
+#include "Utils.h"
 /**
  * @brief 配置类，负责存储和管理备份系统的所有配置项
  * @details 涵盖源路径、目标路径、文件筛选、备份行为（打包/压缩/加密）等配置，提供完整的 setter/getter 接口

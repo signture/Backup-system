@@ -66,12 +66,30 @@ CBackupRecorder::CBackupRecorder(bool autoSave)
 CBackupRecorder::CBackupRecorder(const std::string& filePath)
 {
     // 检查这个路径是文件还是目录
-    // 如果是文件，直接赋值
-    CBackupRecorder::recorderFilePath = filePath;
-    // 是目录，则将默认文件名加在目录后面
-    // 调用的时候应该还没创建，直接看路径最后有没有json后缀
-    if(filePath.find(".json") == std::string::npos){
+    if(fs::is_directory(filePath)){
+        // 如果是目录
+        // 检查目录中是否存在同名文件
+        if(fs::exists(filePath + "/" + "backup_records.json")){
+            // 如果目录中存在同名文件，询问用户是否需要加载
+            char response;
+            std::cout << "Warning: Directory " << filePath << " already contains a file named 'backup_records.json'. "
+                      << "Do you want to load this file? (y/n): ";
+            std::cin >> response;
+            if(response == 'y' || response == 'Y'){
+                CBackupRecorder::recorderFilePath = filePath + "/" + "backup_records.json";
+            }else{
+                std::cerr << "Operation canceled. No file will be loaded." << std::endl;
+                return;
+            }
+        }
         CBackupRecorder::recorderFilePath = filePath + "/" + "backup_records.json";
+    }else if(fs::is_regular_file(filePath)){
+        // 如果是文件，直接赋值
+        CBackupRecorder::recorderFilePath = filePath;
+    }else{
+        // 如果既不是文件也不是目录，报错
+        std::cerr << "Error: Invalid file path. It is neither a regular file nor a directory." << std::endl;
+        return;
     }
     loadBackupRecordsFromFile(recorderFilePath);
 }
