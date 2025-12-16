@@ -1,10 +1,6 @@
 #ifndef PACKFACTORY_H
 #define PACKFACTORY_H
 #include "IPack.h"
-<<<<<<< HEAD
-#include <string>
-#include <memory>
-=======
 #include "myPack.h"
 #include <string>
 #include <vector>
@@ -14,7 +10,6 @@
 #include <filesystem>
 #include <fstream>
 
->>>>>>> encryptFunction
 
 
 // 打包器工厂类 - 负责创建不同类型的打包器实例

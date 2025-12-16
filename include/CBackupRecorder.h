@@ -5,11 +5,8 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 
-<<<<<<< HEAD
-=======
 #include "CConfig.h"
 
->>>>>>> encryptFunction
 // 定义结构体，用于记录备份记录
 struct BackupEntry {
     std::string fileName;        // 源文件名
@@ -20,25 +17,16 @@ struct BackupEntry {
     bool isEncrypted;            // 是否加密
     bool isPacked;               // 是否打包
     bool isCompressed;           // 是否压缩
-<<<<<<< HEAD
-=======
     std::string description;     // 备份描述
->>>>>>> encryptFunction
     
     // 默认构造函数
     BackupEntry() = default;
     
     // 完整构造函数
     BackupEntry(const std::string& fn, const std::string& sfp, const std::string& dd, 
-<<<<<<< HEAD
-                const std::string& bfn, const std::string& bt, bool ie, bool ip, bool ic)
-        : fileName(fn), sourceFullPath(sfp), destDirectory(dd), backupFileName(bfn), 
-          backupTime(bt), isEncrypted(ie), isPacked(ip), isCompressed(ic) {}
-=======
                 const std::string& bfn, const std::string& bt, bool ie, bool ip, bool ic, const std::string& desc)
         : fileName(fn), sourceFullPath(sfp), destDirectory(dd), backupFileName(bfn), 
           backupTime(bt), isEncrypted(ie), isPacked(ip), isCompressed(ic), description(desc) {}
->>>>>>> encryptFunction
     
     // 为了向后兼容，添加destPath别名
     std::string& destPath() { return destDirectory; }
@@ -122,15 +110,12 @@ public:
 
     bool modifyBackupRecord(const BackupEntry& oldEntry, const BackupEntry& newEntry);
 
-<<<<<<< HEAD
-=======
     // 获取默认的备份记录文件路径
     std::string getRecorderFilePath() const;
 
     // 增加备份记录
     void addBackupRecord(const std::shared_ptr<CConfig>& config, const std::string& destPath);
 
->>>>>>> encryptFunction
 private:
     std::vector<BackupEntry> backupRecords; // 备份记录容器
     std::string recorderFilePath; // 备份记录文件路径

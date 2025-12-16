@@ -4,22 +4,16 @@
 
 #include <string>
 #include <memory>
-<<<<<<< HEAD
-#include "ICompress.h"  // 依赖ICompress抽象类
-=======
 #include <vector>
 #include <algorithm>
 #include "ICompress.h"  // 依赖ICompress抽象类
 #include "HuffmanCompress.h"
->>>>>>> encryptFunction
 
 // 压缩工厂类：负责责创建不同类型的压缩器实例
 class CompressFactory {
 public:
     // 根据静态压缩缩类型创建对应的压缩器（返回ICompress智能指针）
     static std::unique_ptr<ICompress> createCompress(const std::string& compressType);
-<<<<<<< HEAD
-=======
 
     // 获取支持的压缩类型
     static std::vector<std::string> getSupportedCompressTypes();
@@ -38,7 +32,6 @@ public:
 
     // 将CompressType枚举类型转换为字符串类型
     static std::string compressTypeToString(CompressType compressType);
->>>>>>> encryptFunction
 };
 
 #endif // COMPRESSFACTORY_H

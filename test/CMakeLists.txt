@@ -5,11 +5,7 @@ enable_testing()
 add_subdirectory(../lib/googletest googletest)  # 第二个参数指定GTest构建目录（避免冲突）
 
 # 收集测试源文件
-<<<<<<< HEAD
-file(GLOB_RECURSE TEST_SOURCES "test_simple.cpp")
-=======
 file(GLOB_RECURSE TEST_SOURCES "test_*.cpp")
->>>>>>> encryptFunction
 
 # 创建测试可执行文件
 add_executable(test_app ${TEST_SOURCES})
