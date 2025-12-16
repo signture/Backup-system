@@ -1,9 +1,12 @@
 #include "CConfig.h"
+<<<<<<< HEAD
 #include <sstream>
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+=======
+>>>>>>> encryptFunction
 
 // ===== 构造函数与析构函数实现 =====
 CConfig::CConfig() {
@@ -170,6 +173,27 @@ const std::string& CConfig::getEncryptionKey() const {
     return m_encryptionKey; // 返回统一命名的成员变量
 }
 
+<<<<<<< HEAD
+=======
+CConfig& CConfig::setEncryptType(const std::string& type) {
+    m_encryptType = type; // 赋值给统一命名的成员变量
+    return *this;
+}
+
+const std::string& CConfig::getEncryptType() const {
+    return m_encryptType; // 返回统一命名的成员变量
+}
+
+CConfig& CConfig::setDescription(const std::string& desc) {
+    m_description = desc; // 赋值给统一命名的成员变量
+    return *this;
+}
+
+const std::string& CConfig::getDescription() const {
+    return m_description; // 返回统一命名的成员变量
+}
+
+>>>>>>> encryptFunction
 // ===== 高级配置接口实现 =====
 CConfig& CConfig::setCustomOption(const std::string& key, const std::string& value) {
     if (key.empty()) {
@@ -260,6 +284,15 @@ bool CConfig::isValid() const {
         std::cerr << "Error: Encryption enabled but encryption key is empty" << std::endl;
         return false;
     }
+<<<<<<< HEAD
+=======
+
+    // 7. 增加：目标路径是否可写
+    if (!isPathWritable(m_destinationPath)) {
+        std::cerr << "Error: Destination path is not writable: " << m_destinationPath << std::endl;
+        return false;
+    }
+>>>>>>> encryptFunction
     
     // 所有检查通过，配置有效
     return true;

@@ -1,37 +1,26 @@
 ﻿#include <gtest/gtest.h>
 
 #include "CBackup.h"
+<<<<<<< HEAD
 #include "CBackupManager.h"
+=======
+>>>>>>> encryptFunction
 #include "CConfig.h"
 
 #include <fstream>
 #include <filesystem>
 #include <memory>
 #include <vector>
+<<<<<<< HEAD
 
 // 声明外部函数
 bool ReadFile(const std::string& filePath, std::vector<char>& buffer);
+=======
+#include "testUtils.h"
+>>>>>>> encryptFunction
 
-// 辅助函数定义必须放在测试用例之前
-bool CreateTestFile(const std::string& filePath, const std::string& content) {
-    try {
-        // 确保目录存在
-        std::filesystem::path dir = std::filesystem::path(filePath).parent_path();
-        if (!dir.empty() && !std::filesystem::exists(dir)) {
-            std::filesystem::create_directories(dir);
-        }
-        
-        // 创建并写入文件
-        std::ofstream file(filePath, std::ios::binary);
-        if (!file) return false;
-        file.write(content.data(), content.size());
-        file.close();
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
 
+<<<<<<< HEAD
 void CleanupTestFile(const std::string& filePath) {
     try {
         if (std::filesystem::exists(filePath)) {
@@ -44,6 +33,10 @@ void CleanupTestFile(const std::string& filePath) {
 
 TEST(BackupTest, BasicBackup) {  
     // 测试准备：创建测试文件
+=======
+TEST(BackupTest, BasicBackup) {  
+    // 测试准备：创建测试文件s
+>>>>>>> encryptFunction
     const std::string sourcePath = "test_file.txt";
     const std::string destDir = "test_dir";
     const std::string destPath = destDir + "/test_file.txt";
@@ -61,8 +54,13 @@ TEST(BackupTest, BasicBackup) {
     auto config = std::make_shared<CConfig>(sourcePath, destDir);
     
     CBackup backup;
+<<<<<<< HEAD
     bool result = backup.doBackup(config);
     EXPECT_TRUE(result) << "Backup failed";
+=======
+    std::string result = backup.doBackup(config);
+    EXPECT_TRUE(!result.empty()) << "Backup failed: " << result;
+>>>>>>> encryptFunction
 
     // 检查备份文件是否存在
     std::ifstream backupFile(destPath);
@@ -71,17 +69,20 @@ TEST(BackupTest, BasicBackup) {
     
     // 检查备份文件内容是否与源文件相同
     std::vector<char> sourceBuffer, backupBuffer;
-    bool readSource = ReadFile(sourcePath, sourceBuffer);
-    bool readBackup = ReadFile(destPath, backupBuffer);
+    bool readSource = ReadTestFile(sourcePath, sourceBuffer);
+    bool readBackup = ReadTestFile(destPath, backupBuffer);
     EXPECT_TRUE(readSource) << "Failed to read source file";
     EXPECT_TRUE(readBackup) << "Failed to read backup file";
     EXPECT_EQ(sourceBuffer, backupBuffer) << "Backup content mismatch";
 
+<<<<<<< HEAD
     // 测试记录 - 需要通过CBackupManager来获取记录
     CBackupManager manager;
     const std::vector<BackupEntry>& records = manager.getBackupRecords();
     // 注意：由于我们直接使用CBackup，没有通过CBackupManager，所以这里可能没有记录
     // 这是测试设计的问题，需要重新设计测试逻辑
+=======
+>>>>>>> encryptFunction
 
     // 测试清理
     CleanupTestFile(sourcePath);

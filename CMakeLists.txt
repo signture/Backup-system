@@ -16,7 +16,11 @@ include(FetchContent)
 #     GIT_TAG v3.11.3  # 指定版本
 # )
 # FetchContent_MakeAvailable(json)
+<<<<<<< HEAD
 include_directories(${CMAKE_SOURCE_DIR}/third_party/json/include)
+=======
+include_directories(${CMAKE_SOURCE_DIR}/lib/json/include)
+>>>>>>> encryptFunction
 # 静态运行时库配置（全局生效）
 if(MSVC)
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")

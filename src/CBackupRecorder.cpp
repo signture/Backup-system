@@ -2,32 +2,103 @@
 #include <fstream>
 #include <algorithm>
 #include <iostream>
+namespace fs = std::filesystem; 
 
+#if defined(_MSC_VER)
+#include <windows.h>
+// GBK(CP936)转UTF-8（极简版，处理用户输入的中文）
+std::string gbk_to_utf8(const std::string& gbk_str) {
+    // 第一步：GBK转宽字符
+    int wlen = MultiByteToWideChar(CP_ACP, 0, gbk_str.c_str(), -1, nullptr, 0);
+    if (wlen == 0) return gbk_str; // 转换失败返回原字符串
+    wchar_t* wbuf = new wchar_t[wlen];
+    MultiByteToWideChar(CP_ACP, 0, gbk_str.c_str(), -1, wbuf, wlen);
+    
+    // 第二步：宽字符转UTF-8
+    int ulen = WideCharToMultiByte(CP_UTF8, 0, wbuf, -1, nullptr, 0, nullptr, nullptr);
+    if (ulen == 0) { delete[] wbuf; return gbk_str; }
+    char* ubuf = new char[ulen];
+    WideCharToMultiByte(CP_UTF8, 0, wbuf, -1, ubuf, ulen, nullptr, nullptr);
+    
+    std::string utf8_str(ubuf);
+    delete[] wbuf;
+    delete[] ubuf;
+    return utf8_str;
+}
+#else
+// Linux/macOS直接返回原字符串（默认UTF-8）
+std::string gbk_to_utf8(const std::string& str) {
+    return str;
+}
+# endif
 
 CBackupRecorder::CBackupRecorder()
 {
     // 设定默认备份记录文件路径
-    recorderFilePath = "backup_records.json";
+    CBackupRecorder::recorderFilePath = "backup_records.json";
     // 先检查有没有这个文件
-    std::ifstream checkFile(recorderFilePath);
+    std::ifstream checkFile(CBackupRecorder::recorderFilePath);
     if(!checkFile.is_open()){
         // 如果文件不存在，创建一个空文件
-        std::ofstream createFile(recorderFilePath);
+        std::ofstream createFile(CBackupRecorder::recorderFilePath);
         createFile.close();
     }
-    loadBackupRecordsFromFile(recorderFilePath);
+    loadBackupRecordsFromFile(CBackupRecorder::recorderFilePath);
+    autoSaveEnabled = false;
+}
+
+CBackupRecorder::CBackupRecorder(bool autoSave)
+{
+    // 设定默认备份记录文件路径
+    CBackupRecorder::recorderFilePath = "backup_records.json";
+    // 先检查有没有这个文件
+    std::ifstream checkFile(CBackupRecorder::recorderFilePath);
+    if(!checkFile.is_open()){
+        // 如果文件不存在，创建一个空文件
+        std::ofstream createFile(CBackupRecorder::recorderFilePath);
+        createFile.close();
+    }
+    loadBackupRecordsFromFile(CBackupRecorder::recorderFilePath);
+    autoSaveEnabled = autoSave;
 }
 
 // 构造函数
 CBackupRecorder::CBackupRecorder(const std::string& filePath)
 {
-    recorderFilePath = filePath;
+    // 检查这个路径是文件还是目录
+    if(fs::is_directory(filePath)){
+        // 如果是目录
+        // 检查目录中是否存在同名文件
+        if(fs::exists(filePath + "/" + "backup_records.json")){
+            // 如果目录中存在同名文件，询问用户是否需要加载
+            char response;
+            std::cout << "Warning: Directory " << filePath << " already contains a file named 'backup_records.json'. "
+                      << "Do you want to load this file? (y/n): ";
+            std::cin >> response;
+            if(response == 'y' || response == 'Y'){
+                CBackupRecorder::recorderFilePath = filePath + "/" + "backup_records.json";
+            }else{
+                std::cerr << "Operation canceled. No file will be loaded." << std::endl;
+                return;
+            }
+        }
+        CBackupRecorder::recorderFilePath = filePath + "/" + "backup_records.json";
+    }else if(fs::is_regular_file(filePath)){
+        // 如果是文件，直接赋值
+        CBackupRecorder::recorderFilePath = filePath;
+    }else{
+        // 如果既不是文件也不是目录，报错
+        std::cerr << "Error: Invalid file path. It is neither a regular file nor a directory." << std::endl;
+        return;
+    }
     loadBackupRecordsFromFile(recorderFilePath);
 }
 
 CBackupRecorder::~CBackupRecorder()
 {
-    saveBackupRecordsToFile(recorderFilePath);
+    if(autoSaveEnabled){
+        saveBackupRecordsToFile(CBackupRecorder::recorderFilePath);
+    }
 }
 
 
@@ -157,3 +228,46 @@ bool CBackupRecorder::modifyBackupRecord(const BackupEntry& oldEntry, const Back
     std::cerr << "Error: Backup record not found for modification." << std::endl;
     return false;
 }
+
+std::string CBackupRecorder::getRecorderFilePath() const{
+    return recorderFilePath;
+}
+
+void CBackupRecorder::addBackupRecord(const std::shared_ptr<CConfig>& config, const std::string& destPath){
+    BackupEntry entry;
+    // 之前已经将配置中的路径转换为了绝对路径
+    std::string sourcePath = config->getSourcePath();
+    // 文件名就是绝对路径的文件名
+    std::string fileName = fs::path(sourcePath).filename().string();
+    // 完整的目标路径
+    std::string destDir = config->getDestinationPath();
+    // 最后备份的文件名通过destPath得到
+    std::string backupFileName = fs::path(destPath).filename().string();
+    // 记录时间，精确到秒，防止统一分钟的两次备份在时间查询中出现问题
+    std::time_t now = std::time(nullptr);
+    std::tm* tm = std::localtime(&now);
+    char timeBuffer[64];
+    std::strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %H:%M:%M", tm);
+    std::string backupTime = timeBuffer;
+    // 通过配置文件查看是否有加密等设置
+    bool isEncrypted = config->isEncryptionEnabled();
+    bool isPacked = config->isPackingEnabled();
+    bool isCompressed = config->isCompressionEnabled();
+    // 查看配置中有没有相关描述
+    std::string description = config->getDescription();
+    // 测试的时候发现中文描述之后在保存的时候会有问题，这里修复一下
+    description = gbk_to_utf8(description); 
+    entry = BackupEntry(fileName, sourcePath, destDir, backupFileName, backupTime, isEncrypted, isPacked, isCompressed, description);
+    // 增加备份记录
+    backupRecords.push_back(entry);
+}
+
+
+    // std::string fileName;        // 源文件名
+    // std::string sourceFullPath;  // 源文件完整路径
+    // std::string destDirectory;   // 备份目标目录
+    // std::string backupFileName;  // 最终备份文件名
+    // std::string backupTime;      // 备份时间
+    // bool isEncrypted;            // 是否加密
+    // bool isPacked;               // 是否打包
+    // bool isCompressed;           // 是否压缩
