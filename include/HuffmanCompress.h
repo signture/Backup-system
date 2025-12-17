@@ -73,4 +73,3 @@ class HuffmanCompress : public ICompress {
 
 
 #endif  // INCLUDE_HUFFMANCOMPRESS_H_
-
