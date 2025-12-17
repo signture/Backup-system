@@ -19,7 +19,6 @@ CBackup::~CBackup() {
 // 收集需要备份的文件列表
 std::vector<std::string> collectFilesToBackup(const std::string& rootPath, const std::shared_ptr<CConfig>& config) {
     std::vector<std::string> filesList;
-
     // 检查配置是否有效
     if (!config || !fs::exists(rootPath)) {
         return filesList;
@@ -54,7 +53,6 @@ std::vector<std::string> collectFilesToBackup(const std::string& rootPath, const
             }
         }
     }
-
     return filesList;
 }
 
@@ -378,48 +376,51 @@ std::string CBackup::doBackup(const std::shared_ptr<CConfig>& config) {
             return "";
         }
     }
+
     try {
-        fs::create_directories(checkPath);
-    } catch (const std::exception& e) {
-        std::cerr << "Error: Failed to create timestamp directory: " << e.what() << std::endl;
-        return "";
-    }
-    destPath = destinationRoot;
-    for (const auto& root : sourceRoots) {
-        const fs::path rootPath = fs::path(root).parent_path();
-        if (fs::exists(root)) {
-            // 遍历所有收集的条目
-            for (const auto& entry : filesToBackup) {
-                // 只处理以当前root为前缀的条目
-                if (entry.rfind(rootPath.string(), 0) == 0) {
-                    const std::string relativePath = fs::relative(entry, rootPath).string();
-                    // 为空，说明相对路径就是当前目录，直接以entry作为相对路径
-                    const std::string destinationPath = (relativePath.empty() ?
-                                                        (fs::path(destinationRoot) / entry).string() :
-                                                        (fs::path(destinationRoot) / relativePath).string());
+        // 确保目标根目录存在
+        fs::create_directories(destinationRoot);
 
-                    std::cout << "Copying " << entry << " to " << destinationPath << std::endl;
-                    std::cout << "Root:" << rootPath << std::endl;
-                    std::cout << "Relative Path:" << relativePath << std::endl;
+        // 获取源根目录路径
+        const std::string& sourceRoot = sourceRoots[0];
+        const fs::path sourceRootPath(sourceRoot);
+        std::string backupRoot = destinationRoot;
 
-                    try {
-                        if (fs::is_directory(entry)) {
-                            // 确保目录存在
-                            fs::create_directories(destinationPath);
-                        } else if (fs::is_regular_file(entry)) {
-                            // 确保目标文件的父目录存在
-                            fs::create_directories(fs::path(destinationPath).parent_path());
-                            // 复制文件
-                            CopyFileBinary(entry, destinationPath);
-                        }
-                    } catch (const std::exception& e) {
-                        std::cerr << "Error processing " << entry << ": " << e.what() << std::endl;
-                        return "";
-                    }
+        // 遍历所有收集的条目（先根遍历结果）
+        for (const auto& entry : filesToBackup) {
+            // 计算相对路径
+            std::string relativePath;
+            if (fs::is_directory(sourceRoot)) {
+                // 应该是当前entry和sourceRoot父目录的相对路径
+                relativePath = fs::relative(entry, sourceRootPath.parent_path()).string();
+            } else {
+                // 如果源是文件，直接使用文件名
+                relativePath = sourceRootPath.filename().string();
+            }
+
+            // 构建目标路径
+            fs::path destinationPath = fs::path(backupRoot) / relativePath;
+
+            try {
+                if (fs::is_directory(entry)) {
+                    // 创建目录（如果不存在）
+                    fs::create_directories(destinationPath);
+                } else if (fs::is_regular_file(entry)) {
+                    // 确保目标文件的父目录存在
+                    fs::create_directories(destinationPath.parent_path());
+                    // 复制文件
+                    CopyFileBinary(entry, destinationPath.string());
                 }
+            } catch (const std::exception& e) {
+                std::cerr << "Error processing " << entry << ": " << e.what() << std::endl;
+                return "";
             }
         }
+    } catch (const std::exception& e) {
+        std::cerr << "Error: Failed to create destination directory: " << e.what() << std::endl;
+        return "";
     }
 
-    return checkPath;
+    destPath = checkPath;
+    return destPath;
 }
