@@ -1,0 +1,73 @@
+# 编译器设置
+CC = g++
+CFLAGS = -Iinclude -Wall -Wextra -g -std=c++17
+
+# 目录设置
+SRC_DIR = src
+INC_DIR = include
+BUILD_DIR = build
+BIN_DIR = bin
+TEST_DIR = tests
+LIB_DIR = lib
+
+# GoogleTest设置
+GTEST_DIR = $(LIB_DIR)/googletest
+GTEST_INC = $(GTEST_DIR)/include
+GTEST_LIB = $(GTEST_DIR)/build/lib/libgtest.a $(GTEST_DIR)/build/lib/libgtest_main.a
+
+# 文件设置
+# 匹配source目录下的cpp文件
+SOURCE = $(wildcard $(SRC_DIR)/*.cpp)
+# 将source目录下的cpp文件转换为build目录下的o文件
+OBJECTS = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SOURCE))
+# 定义可执行文件名
+TARGET = $(BIN_DIR)/backup_app
+
+# 测试文件设置
+TEST_SOURCE = $(wildcard $(TEST_DIR)/*.cpp)
+# 排除main.cpp，因为测试有自己的main
+CORE_OBJECTS = $(filter-out $(BUILD_DIR)/main.o, $(OBJECTS))
+TEST_OBJECTS = $(patsubst $(TEST_DIR)/%.cpp, $(BUILD_DIR)/test_%.o, $(TEST_SOURCE))
+TEST_TARGET = $(BIN_DIR)/test_app
+
+
+# 默认目标 - 第一个目标会被自动执行
+all: $(TARGET)
+
+# 链接可执行文件
+$(TARGET): $(OBJECTS)
+	@mkdir -p $(BIN_DIR)  # 如果bin目录不存在则创建
+	$(CC) $(CFLAGS) -o $@ $^  # 链接所有目标文件生成可执行文件
+
+# 编译源文件生成目标文件
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
+	@mkdir -p $(BUILD_DIR)  # 如果build目录不存在则创建
+	$(CC) $(CFLAGS) -c -o $@ $<  # 编译单个源文件
+
+# 测试目标
+.PHONY: test
+# 写法是一样的，就是针对测试文件
+test: $(TEST_TARGET)
+	$(TEST_TARGET)
+
+# 链接测试可执行文件
+$(TEST_TARGET): $(CORE_OBJECTS) $(TEST_OBJECTS)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) -I$(GTEST_INC) -o $@ $^ $(GTEST_LIB) -lpthread
+
+# 编译测试源文件生成目标文件
+$(BUILD_DIR)/test_%.o: $(TEST_DIR)/%.cpp
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -I$(GTEST_INC) -c -o $@ $<
+
+# 伪目标 - 清理编译产物
+clean:
+	@if exist $(BUILD_DIR) rd /s /q $(BUILD_DIR)
+	@if exist $(BIN_DIR) rd /s /q $(BIN_DIR)
+
+# 伪目标 - 运行程序
+run: $(TARGET)
+	$(TARGET)
+
+# 声明伪目标
+.PHONY: all clean run
