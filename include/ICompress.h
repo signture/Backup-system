@@ -1,5 +1,6 @@
-#ifndef ICOMPRESS_H
-#define ICOMPRESS_H
+// Copyright [2025] <JiJun Lu, Linru Zhou>
+#ifndef INCLUDE_ICOMPRESS_H_
+#define INCLUDE_ICOMPRESS_H_
 
 #include <string>
 #include <vector>
@@ -14,7 +15,7 @@ enum class CompressType : uint8_t {
 
 // 压缩算法抽象接口
 class ICompress {
-public:
+ public:
     // 虚析构函数（确保子类析构正常调用）
     virtual ~ICompress() = default;
 
@@ -43,4 +44,4 @@ public:
     // virtual std::string getFileExtension() const = 0;
 };
 
-#endif // ICOMPRESS_H
+#endif  // INCLUDE_ICOMPRESS_H_

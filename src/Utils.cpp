@@ -1,10 +1,11 @@
+// Copyright [2025] <JiJun Lu, Linru Zhou>
 #include "Utils.h"
 // 构建一个读写的辅助函数
-bool ReadFile(const std::string& filePath, std::vector<char>& buffer){
+bool ReadFile(const std::string& filePath, std::vector<char>& buffer) {
     // 以二进制进行文件读写
-    std::ifstream inFile(filePath, std::ios::binary); 
+    std::ifstream inFile(filePath, std::ios::binary);
     // 检查文件是否打开成功
-    if(!inFile.is_open()){
+    if (!inFile.is_open()) {
         std::cerr << "Failed to open file: " << filePath << std::endl;
         return false;
     }
@@ -14,22 +15,22 @@ bool ReadFile(const std::string& filePath, std::vector<char>& buffer){
     inFile.seekg(0);               // 移动回文件开头
     // 读取文件内容
     buffer.resize(fileSize);
-    if(!inFile.read(buffer.data(), fileSize)){  //  后续可以设置分块读取以防止文件过大导致内存不足
+    if (!inFile.read(buffer.data(), fileSize)) {  //  后续可以设置分块读取以防止文件过大导致内存不足
         std::cerr << "Failed to read file: " << filePath << std::endl;
         return false;
     }
     return true;
 }
 
-bool WriteFile(const std::string& filePath, std::vector<char>& buffer){
+bool WriteFile(const std::string& filePath, const std::vector<char>& buffer) {
     // 以二进制进行写操作
     std::ofstream outFile(filePath, std::ofstream::binary);
-    if(!outFile.is_open()){
+    if (!outFile.is_open()) {
         std::cerr << "Failed to open file: " << filePath << std::endl;
         return false;
     }
     outFile.write(buffer.data(), buffer.size());
-    if(!outFile){
+    if (!outFile) {
         std::cerr << "Failed to write file: " << filePath << std::endl;
         return false;
     }
@@ -38,11 +39,11 @@ bool WriteFile(const std::string& filePath, std::vector<char>& buffer){
 }
 
 
-bool CopyFileBinary(const std::string& srcPath, const std::string& destPath){
+bool CopyFileBinary(const std::string& srcPath, const std::string& destPath) {
     // 以二进制进行文件读写
-    std::ifstream inFile(srcPath, std::ios::binary); 
+    std::ifstream inFile(srcPath, std::ios::binary);
     // 检查文件是否打开成功
-    if(!inFile.is_open()){
+    if (!inFile.is_open()) {
         std::cerr << "Failed to open file: " << srcPath << std::endl;
         return false;
     }
@@ -52,13 +53,13 @@ bool CopyFileBinary(const std::string& srcPath, const std::string& destPath){
     inFile.seekg(0);               // 移动回文件开头
     // 读取文件内容
     std::vector<char> buffer(fileSize);
-    if(!inFile.read(buffer.data(), fileSize)){  //  后续可以设置分块读取以防止文件过大导致内存不足
+    if (!inFile.read(buffer.data(), fileSize)) {  //  后续可以设置分块读取以防止文件过大导致内存不足
         std::cerr << "Failed to read file: " << srcPath << std::endl;
         return false;
     }
     inFile.close();
     // 写入文件内容
-    if(!WriteFile(destPath, buffer)){
+    if (!WriteFile(destPath, buffer)) {
         std::cerr << "Failed to write file: " << destPath << std::endl;
         return false;
     }

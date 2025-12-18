@@ -1,11 +1,13 @@
-#ifndef CRC32_H
-#define CRC32_H
+// Copyright [2025] <JiJun Lu, Linru Zhou>
+#ifndef INCLUDE_CRC32_H_
+#define INCLUDE_CRC32_H_
 
 #include <vector>
 #include <cstdint>
+#include <numeric>
 
 class CRC32{
-private:
+ private:
     // CRC32查找表（预计算）
 static constexpr uint32_t crc32Table[256] = {
     0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3,
@@ -41,33 +43,34 @@ static constexpr uint32_t crc32Table[256] = {
     0xBDBDF21C, 0xCABAC28A, 0x53B39330, 0x24B4A3A6, 0xBAD03605, 0xCDD70693, 0x54DE5729, 0x23D967BF,
     0xB3667A2E, 0xC4614AB8, 0x5D681B02, 0x2A6F2B94, 0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D
 };
-public:
+
+ public:
     CRC32() = default;
 
     // 计算CRC32校验值
-    static uint32_t calculate(const std::vector<uint8_t>& data, uint32_t crc = 0xFFFFFFFF) {
-        for (uint8_t byte : data) {
-            crc = crc32Table[(crc ^ byte) & 0xFF] ^ (crc >> 8);
-        }
-        return crc ^ 0xFFFFFFFF;
-    }
+static uint32_t calculate(const std::vector<uint8_t>& data, uint32_t crc = 0xFFFFFFFF) {
+    crc = std::accumulate(data.begin(), data.end(), crc,
+        [](uint32_t currentCRC, uint8_t byte) {
+            return crc32Table[(currentCRC ^ byte) & 0xFF] ^ (currentCRC >> 8);
+        });
+    return crc ^ 0xFFFFFFFF;
+}
 
     // 计算单个字节的CRC32
     static uint32_t update(uint32_t currentCRC, uint8_t byte) {
         return crc32Table[(currentCRC ^ byte) & 0xFF] ^ (currentCRC >> 8);
     }
-    
+
     // 获取初始CRC值
     static constexpr uint32_t getInitialValue() {
         return 0xFFFFFFFF;
     }
-    
+
     // 完成CRC计算，获取最终结果
     static uint32_t finalize(uint32_t crc) {
         return crc ^ 0xFFFFFFFF;
     }
-
 };
 
 
-#endif
+#endif  // INCLUDE_CRC32_H_

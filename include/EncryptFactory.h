@@ -1,5 +1,6 @@
-#ifndef ENCRYPTFACTORY_H
-#define ENCRYPTFACTORY_H
+// Copyright [2025] <JiJun Lu, Linru Zhou>
+#ifndef INCLUDE_ENCRYPTFACTORY_H_
+#define INCLUDE_ENCRYPTFACTORY_H_
 
 #include "IEncrypt.h"
 #include "SimpleXOREncrypt.h"
@@ -9,7 +10,7 @@
 #include <algorithm>
 
 class EncryptFactory {
-public:
+ public:
     // 创建加密器
     static std::unique_ptr<IEncrypt> createEncryptor(const std::string& encryptType);
 
@@ -33,4 +34,4 @@ public:
 };
 
 
-#endif
+#endif  // INCLUDE_ENCRYPTFACTORY_H_

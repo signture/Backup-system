@@ -1,6 +1,6 @@
-// Encoding: UTF-8
-#ifndef IPACK_H
-#define IPACK_H
+// Copyright [2025] <JiJun Lu, Linru Zhou>
+#ifndef INCLUDE_IPACK_H_
+#define INCLUDE_IPACK_H_
 
 #define PATH_MAX 260
 
@@ -16,7 +16,7 @@ enum class PackType : uint8_t{
 
 // IPack 抽象类 - 文件打包与解包接口
 class IPack {
-public:
+ public:
     virtual ~IPack() = default;
 
     // 打包：输入文件列表，输出打包目标路径（不含扩展名由具体实现决定）
@@ -32,4 +32,4 @@ public:
     virtual std::string getPackTypeName() const = 0;
 };
 
-#endif
+#endif  // INCLUDE_IPACK_H_

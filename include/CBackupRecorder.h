@@ -1,6 +1,8 @@
-#ifndef CBACKUPRECORDER_H
-#define CBACKUPRECORDER_H
+// Copyright [2025] <JiJun Lu, Linru Zhou>
+#ifndef INCLUDE_CBACKUPRECORDER_H_
+#define INCLUDE_CBACKUPRECORDER_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
@@ -18,16 +20,16 @@ struct BackupEntry {
     bool isPacked;               // 是否打包
     bool isCompressed;           // 是否压缩
     std::string description;     // 备份描述
-    
+
     // 默认构造函数
-    BackupEntry() = default;
-    
+    BackupEntry() : isEncrypted(false), isPacked(false), isCompressed(false) {}
+
     // 完整构造函数
-    BackupEntry(const std::string& fn, const std::string& sfp, const std::string& dd, 
+    BackupEntry(const std::string& fn, const std::string& sfp, const std::string& dd,
                 const std::string& bfn, const std::string& bt, bool ie, bool ip, bool ic, const std::string& desc)
-        : fileName(fn), sourceFullPath(sfp), destDirectory(dd), backupFileName(bfn), 
+        : fileName(fn), sourceFullPath(sfp), destDirectory(dd), backupFileName(bfn),
           backupTime(bt), isEncrypted(ie), isPacked(ip), isCompressed(ic), description(desc) {}
-    
+
     // 为了向后兼容，添加destPath别名
     std::string& destPath() { return destDirectory; }
     const std::string& destPath() const { return destDirectory; }
@@ -35,8 +37,8 @@ struct BackupEntry {
 
 // 为 BackupEntry 提供 nlohmann/json 所需的序列化支持
 namespace nlohmann {
-    template <>
-    struct adl_serializer<BackupEntry> {
+template <>
+struct adl_serializer<BackupEntry> {
         static void to_json(nlohmann::json& j, const BackupEntry& entry) {
             j = nlohmann::json{{"file_name", entry.fileName},
                      {"source_full_path", entry.sourceFullPath},
@@ -60,8 +62,8 @@ namespace nlohmann {
             j.at("is_compressed").get_to(entry.isCompressed);
             j.at("description").get_to(entry.description);
         }
-    };
-}
+};
+}  // namespace nlohmann
 
 // 重载相等运算符，用于比较两个BackupEntry对象
 inline bool operator==(const BackupEntry& lhs, const BackupEntry& rhs) {
@@ -69,10 +71,10 @@ inline bool operator==(const BackupEntry& lhs, const BackupEntry& rhs) {
 }
 
 class CBackupRecorder {
-public:
+ public:
     CBackupRecorder();
-    CBackupRecorder(bool autoSave);
-    CBackupRecorder(const std::string& filePath);
+    explicit CBackupRecorder(bool autoSave);
+    explicit CBackupRecorder(const std::string& filePath);
     ~CBackupRecorder();
 
     // 从文件中加载备份目录（这里假定程序有一个固定的备份记录文件）
@@ -91,7 +93,8 @@ public:
     std::vector<BackupEntry> findBackupRecordsByFileName(const std::string& queryFileName) const;
 
     // 根据备份时间查找条目
-    std::vector<BackupEntry> findBackupRecordsByBackupTime(const std::string& startime, const std::string& endTime) const;
+    std::vector<BackupEntry> findBackupRecordsByBackupTime(const std::string& startime,
+        const std::string& endTime) const;
 
     // 获取备份条目的全局索引
     size_t getBackupRecordIndex(const BackupEntry& entry) const;
@@ -111,15 +114,16 @@ public:
     bool modifyBackupRecord(const BackupEntry& oldEntry, const BackupEntry& newEntry);
 
     // 获取默认的备份记录文件路径
-    std::string getRecorderFilePath() const;
+    const std::string& getRecorderFilePath() const;
 
     // 增加备份记录
     void addBackupRecord(const std::shared_ptr<CConfig>& config, const std::string& destPath);
 
-private:
-    std::vector<BackupEntry> backupRecords; // 备份记录容器
-    std::string recorderFilePath; // 备份记录文件路径
-    bool autoSaveEnabled; // 是否自动保存,默认为false
+ private:
+    std::vector<BackupEntry> backupRecords;  // 备份记录容器
+    std::string recorderFilePath;  // 备份记录文件路径
+    bool autoSaveEnabled;  // 是否自动保存,默认为false
 };
 
-#endif
+#endif  // INCLUDE_CBACKUPRECORDER_H_
+

@@ -1,5 +1,6 @@
-#ifndef TEST_UTILS_H
-#define TEST_UTILS_H
+// Copyright [2025] <JiJun Lu, Linru Zhou>
+#ifndef INCLUDE_TESTUTILS_H_
+#define INCLUDE_TESTUTILS_H_
 
 #include <string>
 #include <vector>
@@ -28,7 +29,7 @@ inline bool CreateTestFile(const std::string& filePath, const std::string& conte
         if (!dir.empty() && !fs::exists(dir)) {
             fs::create_directories(dir);
         }
-        
+
         // 创建并写入文件
         std::ofstream file(filePath, std::ios::binary);
         if (!file) return false;
@@ -44,11 +45,11 @@ inline bool CreateTestFile(const std::string& filePath, const std::string& conte
 inline bool ReadTestFile(const std::string& filePath, std::vector<char>& buffer) {
     try {
         if (!fs::exists(filePath)) return false;
-        
+
         // 获取文件大小
         std::uintmax_t size = fs::file_size(filePath);
         buffer.resize(static_cast<size_t>(size));
-        
+
         // 读取文件内容
         std::ifstream file(filePath, std::ios::binary);
         if (!file) return false;
@@ -89,10 +90,10 @@ inline bool CompareDirs(const std::string& dir1, const std::string& dir2) {
             // 构建对应路径
             std::string relativePath = fs::relative(entry.path(), dir1).string();
             std::string correspondingPath = (fs::path(dir2) / relativePath).string();
-            
+
             // 检查对应路径是否存在
             if (!fs::exists(correspondingPath)) return false;
-            
+
             // 检查是否为目录
             if (entry.is_directory() != fs::is_directory(correspondingPath)) return false;
         }
@@ -102,4 +103,4 @@ inline bool CompareDirs(const std::string& dir1, const std::string& dir2) {
     }
 }
 
-#endif // TEST_UTILS_H
+#endif  // INCLUDE_TESTUTILS_H_

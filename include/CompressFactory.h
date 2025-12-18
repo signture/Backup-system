@@ -1,6 +1,6 @@
-// Encoding: UTF-8
-#ifndef COMPRESSFACTORY_H
-#define COMPRESSFACTORY_H
+// Copyright [2025] <JiJun Lu, Linru Zhou>
+#ifndef INCLUDE_COMPRESSFACTORY_H_
+#define INCLUDE_COMPRESSFACTORY_H_
 
 #include <string>
 #include <memory>
@@ -11,7 +11,7 @@
 
 // 压缩工厂类：负责责创建不同类型的压缩器实例
 class CompressFactory {
-public:
+ public:
     // 根据静态压缩缩类型创建对应的压缩器（返回ICompress智能指针）
     static std::unique_ptr<ICompress> createCompress(const std::string& compressType);
 
@@ -34,4 +34,4 @@ public:
     static std::string compressTypeToString(CompressType compressType);
 };
 
-#endif // COMPRESSFACTORY_H
+#endif  // INCLUDE_COMPRESSFACTORY_H_

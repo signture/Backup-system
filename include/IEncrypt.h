@@ -1,5 +1,6 @@
-#ifndef IENCRYPT_H
-#define IENCRYPT_H
+// Copyright [2025] <JiJun Lu, Linru Zhou>
+#ifndef INCLUDE_IENCRYPT_H_
+#define INCLUDE_IENCRYPT_H_
 
 #include <string>
 #include <vector>
@@ -17,7 +18,7 @@ enum class EncryptType : uint8_t{
 
 // IEncryptor抽象类
 class IEncrypt {
-public:
+ public:
     // 虚析构函数
     virtual ~IEncrypt() = default;
 
@@ -32,7 +33,6 @@ public:
 
     // 获取加密算法名称
     virtual std::string getEncryptTypeName() const = 0;
-    
 };
 
-#endif // IENCRYPTOR_H
+#endif  // INCLUDE_IENCRYPT_H_

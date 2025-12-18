@@ -1,8 +1,9 @@
+// Copyright [2025] <JiJun Lu, Linru Zhou>
 #include "SimpleXOREncrypt.h"
 
-std::string SimpleXOREncrypt::encryptFile(const std::string& sourcePath, const std::string& key){
+std::string SimpleXOREncrypt::encryptFile(const std::string& sourcePath, const std::string& key) {
     // 首先检查文件是否存在
-    if(!std::filesystem::exists(sourcePath)){
+    if (!std::filesystem::exists(sourcePath)) {
         std::cerr << "Error: File " << sourcePath << " does not exist." << std::endl;
         return "";
     }
@@ -12,14 +13,14 @@ std::string SimpleXOREncrypt::encryptFile(const std::string& sourcePath, const s
 
     // 打开文件
     std::ifstream inFile(sourcePath, std::ios::binary);
-    if(!inFile.is_open()){
+    if (!inFile.is_open()) {
         std::cerr << "Error: Failed to open file " << sourcePath << " for reading." << std::endl;
         return "";
     }
 
     // 打开加密文件
     std::ofstream outFile(destPath, std::ios::binary);
-    if(!outFile.is_open()){
+    if (!outFile.is_open()) {
         std::cerr << "Error: Failed to open file " << destPath << " for writing." << std::endl;
         return "";
     }
@@ -29,7 +30,7 @@ std::string SimpleXOREncrypt::encryptFile(const std::string& sourcePath, const s
     head.isEncrypt = 0x31;
     head.encryptType = EncryptType::SimXOR;
     head.headerSize = sizeof(EncHead);
-    head.crc32 = 0; // 后续计算
+    head.crc32 = 0;  // 后续计算
     outFile.write(reinterpret_cast<const char*>(&head), sizeof(EncHead));
 
     // 执行简单加密
@@ -45,11 +46,11 @@ std::string SimpleXOREncrypt::encryptFile(const std::string& sourcePath, const s
         password = DEFAULT_KEY;
         keySize = password.size();
     }
-    
+
     uint32_t crc32 = CRC32::getInitialValue();
 
-    while((bytesRead = inFile.read(buffer.data(), BUFFER_SIZE).gcount())){
-        for(size_t i = 0; i < bytesRead; ++i){
+    while ((bytesRead = inFile.read(buffer.data(), BUFFER_SIZE).gcount())) {
+        for (size_t i = 0; i < bytesRead; ++i) {
             // 计算crc
             crc32 = CRC32::update(crc32, static_cast<uint8_t>(buffer[i]));
 
@@ -76,16 +77,17 @@ std::string SimpleXOREncrypt::encryptFile(const std::string& sourcePath, const s
 
 
 // 解密文件
-bool SimpleXOREncrypt::decryptFile(const std::string& sourcePath, const std::string& destPath, const std::string& key){
+bool SimpleXOREncrypt::decryptFile(const std::string& sourcePath,
+                                const std::string& destPath, const std::string& key) {
     // 首先检查文件是否存在
-    if(!std::filesystem::exists(sourcePath)){
+    if (!std::filesystem::exists(sourcePath)) {
         std::cerr << "Error: File " << sourcePath << " does not exist." << std::endl;
         return false;
     }
 
     // 打开文件
     std::ifstream inFile(sourcePath, std::ios::binary);
-    if(!inFile.is_open()){
+    if (!inFile.is_open()) {
         std::cerr << "Error: Failed to open file " << sourcePath << " for reading." << std::endl;
         return false;
     }
@@ -93,20 +95,20 @@ bool SimpleXOREncrypt::decryptFile(const std::string& sourcePath, const std::str
     // 读取头信息
     EncHead head;
     inFile.read(reinterpret_cast<char*>(&head), sizeof(EncHead));
-    if(!inFile.good()){
+    if (!inFile.good()) {
         std::cerr << "Error: Failed to read header from file " << sourcePath << "." << std::endl;
         return false;
     }
 
     // 检查是否为加密文件
-    if(head.isEncrypt != 0x31 || head.encryptType != EncryptType::SimXOR){
+    if (head.isEncrypt != 0x31 || head.encryptType != EncryptType::SimXOR) {
         std::cerr << "Error: File " << sourcePath << " is not an encrypted file." << std::endl;
         return false;
     }
 
     // 打开解密文件
     std::ofstream outFile(destPath, std::ios::binary);
-    if(!outFile.is_open()){
+    if (!outFile.is_open()) {
         std::cerr << "Error: Failed to open file " << destPath << " for writing." << std::endl;
         return false;
     }
@@ -117,7 +119,7 @@ bool SimpleXOREncrypt::decryptFile(const std::string& sourcePath, const std::str
     size_t keySize = key.size();
     size_t keyIndex = 0;
     size_t bytesRead;
-    uint32_t crc32 = CRC32::getInitialValue(); 
+    uint32_t crc32 = CRC32::getInitialValue();
 
     // 添加空密钥处理
     if (keySize == 0) {
@@ -126,9 +128,9 @@ bool SimpleXOREncrypt::decryptFile(const std::string& sourcePath, const std::str
         keySize = password.size();
     }
 
-    while((bytesRead = inFile.read(buffer.data(), BUFFER_SIZE).gcount()) > 0) {
+    while ((bytesRead = inFile.read(buffer.data(), BUFFER_SIZE).gcount()) > 0) {
         // 对数据进行CRC计算
-        for(size_t i = 0; i < bytesRead; ++i) {  
+        for (size_t i = 0; i < bytesRead; ++i) {
             // 先解密，再计算crc32
             // 解密数据
             buffer[i] ^= password[keyIndex];
@@ -136,14 +138,13 @@ bool SimpleXOREncrypt::decryptFile(const std::string& sourcePath, const std::str
             // 计算crc
             crc32 = CRC32::update(crc32, static_cast<uint8_t>(buffer[i]));
         }
-        
         // 写入解密后的数据
         outFile.write(buffer.data(), bytesRead);
     }
 
     // 完成CRC计算，获取最终结果
     crc32 = CRC32::finalize(crc32);
-    if(crc32 != head.crc32) {
+    if (crc32 != head.crc32) {
         std::cerr << "Error: CRC32 checksum mismatch. File may be corrupted." << std::endl;
         return false;
     }

@@ -1,5 +1,6 @@
-#ifndef MYPACK_H
-#define MYPACK_H
+// Copyright [2025] <JiJun Lu, Linru Zhou>
+#ifndef INCLUDE_MYPACK_H_
+#define INCLUDE_MYPACK_H_
 
 #include "IPack.h"
 #include <string>
@@ -7,12 +8,13 @@
 #include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <vector>
 
 // 为了可以更好的还原目录结构，适应多类型支持，需要增加一个数据类型
 enum class FileType : uint8_t{
     Regular = 0,  // 普通文件
     Directory = 1,  // 目录文件
-    SymbolicLink = 2,  //后面是暂时预留的
+    SymbolicLink = 2,  // 后面是暂时预留的
     CharacterDevice = 3,
     BlockDevice = 4,
     FIFO = 5,
@@ -40,10 +42,10 @@ struct FileMeta{
  *  6. 文件内容（按顺序排列）
 */
 //  haed + content   -->  文件夹结构（先根遍历） -->  root + 文件名
-// 获得path  -->  判断类型  --> 目录文件 -->  文件遍历  -->  |  文件list   -->  下游操作  
+// 获得path  -->  判断类型  --> 目录文件 -->  文件遍历  -->  |  文件list   -->  下游操作
 
 class myPack : public IPack {
-public:
+ public:
     std::string myPack::pack(const std::vector<std::string>& files, const std::string& destPath) override;
 
     bool myPack::unpack(const std::string& srcPath, const std::string& destDir) override;
@@ -54,4 +56,4 @@ public:
 };
 
 
-#endif
+#endif  // INCLUDE_MYPACK_H_

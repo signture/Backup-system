@@ -1,11 +1,12 @@
-#ifndef CBACKUP_H
-#define CBACKUP_H
+// Copyright [2025] <JiJun Lu, Linru Zhou>
+#ifndef INCLUDE_CBACKUP_H_
+#define INCLUDE_CBACKUP_H_
 
 #include <string>
 #include <vector>
 #include <memory>
 #include <ctime>
-#include <set>  
+#include <set>
 #include <fstream>
 #include <iostream>
 #include "Utils.h"
@@ -13,15 +14,15 @@
 #include "CConfig.h"
 #include "CBackupRecorder.h"
 
-#include "PackFactory.h"  
+#include "PackFactory.h"
 #include "CompressFactory.h"
 #include "EncryptFactory.h"
-namespace fs = std::filesystem; 
+namespace fs = std::filesystem;
 
 
 
 class CBackup {
-public: 
+ public:
     CBackup();
     ~CBackup();
 
@@ -33,12 +34,11 @@ public:
     bool doRecovery(const BackupEntry& entry, const std::string& destDir);
 
 
-private:
+ private:
     std::set<std::string> createdDirs;  // 用于记录已创建的目录，避免重复创建
-
 };
 
 std::vector<std::string> collectFilesToBackup(const std::string& rootPath, const std::shared_ptr<CConfig>& config);
 
 
-#endif //CBACKUP_H
+#endif  // INCLUDE_CBACKUP_H_
