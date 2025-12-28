@@ -33,7 +33,9 @@ std::string gbk_to_utf8(const std::string& str) {
 }
 # endif
 
-CBackupRecorder::CBackupRecorder() : recorderFilePath("backup_records.json"), autoSaveEnabled(false) {
+CBackupRecorder::CBackupRecorder() : 
+    recorderFilePath("backup_records.json"), 
+    autoSaveEnabled(false) {
     // 先检查有没有这个文件
     std::ifstream checkFile(CBackupRecorder::recorderFilePath);
     if (!checkFile.is_open()) {
@@ -58,7 +60,8 @@ CBackupRecorder::CBackupRecorder(bool autoSave) :
 }
 
 // 构造函数
-CBackupRecorder::CBackupRecorder(const std::string& filePath) : autoSaveEnabled(true) {
+CBackupRecorder::CBackupRecorder(const std::string& filePath) :
+     autoSaveEnabled(true) {
     // 检查这个路径是文件还是目录
     if (fs::is_directory(filePath)) {
         // 如果是目录

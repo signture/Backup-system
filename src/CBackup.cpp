@@ -57,6 +57,11 @@ std::vector<std::string> collectFilesToBackup(const std::string& rootPath, const
 }
 
 bool CBackup::doRecovery(const BackupEntry& entry, const std::string& destDir) {
+    // 保持向后兼容：默认调用带密码参数的重载，传入空密码表示需要内部交互
+    return doRecovery(entry, destDir, std::string());
+}
+
+bool CBackup::doRecovery(const BackupEntry& entry, const std::string& destDir, const std::string& password) {
     // 基础恢复：
     // - 若是打包：调用解包器（此处保留输出提示，具体实现按打包器完成）
     // - 若非打包：从备份目录将文件按原始相对路径复制回去
@@ -86,10 +91,12 @@ bool CBackup::doRecovery(const BackupEntry& entry, const std::string& destDir) {
     if (encryptFactory.isFileEncrypted(backupRoot + "/" + backupName)) {
         std::cout << "Decrypting file:" << backupName << std::endl;
 
-        // 向用户请求密码
-        std::string password;
-        std::cout << "Enter password for decrypting file " << backupName << ": ";
-        std::cin >> password;
+        // 优先使用外部传入的密码（用于 GUI 场景），若为空则回退到控制台交互（保持 CLI 兼容）
+        std::string usedPassword = password;
+        if (usedPassword.empty()) {
+            std::cout << "Enter password for decrypting file " << backupName << ": ";
+            std::cin >> usedPassword;
+        }
 
         // 创建对应类型加密器
         std::string encryptType = encryptFactory.getEncryptType(backupRoot + "/" + backupName);
@@ -109,7 +116,7 @@ bool CBackup::doRecovery(const BackupEntry& entry, const std::string& destDir) {
         std::string sourcePath = backupRoot + "/" + backupName;
         // 将后缀去除
         backupName.resize(backupName.find_last_of('.'));
-        if (!decryptor->decryptFile(sourcePath, backupRoot + "/" + backupName, password)) {
+        if (!decryptor->decryptFile(sourcePath, backupRoot + "/" + backupName, usedPassword)) {
             std::cerr << "Error: Failed to decrypt file: " << backupName << std::endl;
             return false;
         }

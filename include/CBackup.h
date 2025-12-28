@@ -32,6 +32,8 @@ class CBackup {
 
     // 恢复相关
     bool doRecovery(const BackupEntry& entry, const std::string& destDir);
+    // 重载：接收外部提供的密码（GUI 情况下传入），若传入空串则回退到控制台交互以保持 CLI 兼容
+    bool doRecovery(const BackupEntry& entry, const std::string& destDir, const std::string& password);
 
 
  private:

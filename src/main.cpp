@@ -10,6 +10,7 @@
 #include "CompressFactory.h"
 #include "EncryptFactory.h"
 #include "CBackupRecorder.h"
+#include "gui.h"
 
 namespace fs = std::filesystem;
 
@@ -257,6 +258,9 @@ static int runParsed(const std::vector<std::string>& args) {
         }
         std::cout << "Recovery finished -> " << restoreTo << std::endl;
         return 0;
+    } else if (mode == "gui") {
+        // 以命令行参数直接启动图形界面（阻塞直到窗口关闭）
+        return runBackupGUI();
     }
     printHelp();
     return 1;
@@ -277,6 +281,11 @@ int main() {
         line = trim(line);
         if (line.empty()) continue;
         if (line == "exit" || line == "quit") break;
+        if (line == "gui") {
+            // 在交互式 shell 中启动图形界面（阻塞直到窗口关闭）
+            runBackupGUI();
+            continue;
+        }
         if (line == "help" || line == "--help" || line == "-h") { printHelp(); continue; }
         auto tokens = tokenize(line);
         if (tokens.empty()) continue;
